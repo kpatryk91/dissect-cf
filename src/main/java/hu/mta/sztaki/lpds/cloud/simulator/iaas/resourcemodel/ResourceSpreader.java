@@ -173,9 +173,14 @@ public abstract class ResourceSpreader extends ObservableResource{
 	 */
 	public static class FreqSyncer extends Timed implements IObserver{
 		
+		// TODO: change Observer
 		@Override
-		public void processingPowerChanged(ResourceSpreader source, double oldProcessingPower){
-			
+		public  void  processingPowerChanged(ResourceSpreader source, double oldProcessingPower){
+			//updateMyFreqNow();
+			//final long newFreq = myDepGroup[0].singleGroupwiseFreqUpdater();
+			//final long newFreq = source.singleGroupwiseFreqUpdater();
+			//regularFreqMode = newFreq != 0;
+			//updateFrequency(newFreq);
 		}
 		@Override
 		public void unsubscribeObserver(){
@@ -208,6 +213,11 @@ public abstract class ResourceSpreader extends ObservableResource{
 		@Override
 		public ResourceSpreader[] observerGetDependencyGroup() {
 			return myDepGroup;
+		};
+		
+		@Override
+		public boolean observerIsSubscribed() {
+			return isSubscribed();
 		};
 		/**
 		 * The influence group managed by this freqsyncer object.
@@ -1063,8 +1073,21 @@ public abstract class ResourceSpreader extends ObservableResource{
 		// "It is not possible to change the processing power of a spreader
 		// while it is subscribed!");
 		// }
+		//getSyncer().isSubscribed();
 		this.perTickProcessingPower = perTickProcessingPower;
 		this.negligableProcessing = this.perTickProcessingPower / 1000000000;
+		/*
+		if (this.getMyObserver().observerIsSubscribed()){
+			double oldState = this.perTickProcessingPower;
+			this.perTickProcessingPower = perTickProcessingPower;
+			this.negligableProcessing = perTickProcessingPower / 1000000000;
+			//this.getMyObserver().processingPowerChanged(this, oldState);
+		} else {
+			this.perTickProcessingPower = perTickProcessingPower;
+			this.negligableProcessing = this.perTickProcessingPower / 1000000000;
+		}
+		*/
+		
 	}
 
 	/**

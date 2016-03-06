@@ -25,6 +25,8 @@ public interface IObserver {
 	
 	int observerGetFirstConsumerID();
 	
+	boolean observerIsSubscribed();
+	
 	ResourceSpreader[] observerGetDependencyGroup();
 	
 }
