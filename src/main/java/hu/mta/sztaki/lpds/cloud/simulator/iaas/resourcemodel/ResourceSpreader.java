@@ -89,7 +89,7 @@ public abstract class ResourceSpreader extends ObservableResource{
 	/**
 	 * The influence group in which this resource spreader belongs.
 	 */
-	private FreqSyncer mySyncer = null;
+	//private FreqSyncer mySyncer = null;
 	IObserver watcher = null;
 	
 	@Override
@@ -179,19 +179,36 @@ public abstract class ResourceSpreader extends ObservableResource{
 		}
 		@Override
 		public void unsubscribeObserver(){
-			
+			unsubscribe();
 		}
 		@Override
 		public int getDepgroupLength(){
-			return 0;
+			return depgrouplen;
 		}
 		@Override
 		public ResourceSpreader getObserverDependecyGroupMember(int i){
-			return null;
+			return myDepGroup[i];
 		}
 		
+		@Override
+		public void nudgeObserver() {
+			nudge();
+		};
 		
+		@Override
+		public boolean observerRegularFreqMode() {
+			return isRegularFreqMode();
+		};
 		
+		@Override
+		public int observerGetFirstConsumerID() {
+			return getFirstConsumerId();
+		};
+		
+		@Override
+		public ResourceSpreader[] observerGetDependencyGroup() {
+			return myDepGroup;
+		};
 		/**
 		 * The influence group managed by this freqsyncer object.
 		 * 
@@ -254,7 +271,11 @@ public abstract class ResourceSpreader extends ObservableResource{
 			myDepGroup[1] = consumer;
 			firstConsumerId = 1;
 			depgrouplen = 2;
-			provider.mySyncer = consumer.mySyncer = this;
+			// TODO: change Observer
+			//provider.mySyncer = consumer.mySyncer = this;
+			provider.setMyObserver(this);
+			consumer.setMyObserver(this);
+			
 			setBackPreference(true);
 		}
 
@@ -274,7 +295,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 			firstConsumerId = provcount;
 			depgrouplen = dglen;
 			for (int i = 0; i < dglen; i++) {
-				myDepGroup[i].mySyncer = this;
+				//TODO: change Observer
+				//myDepGroup[i].mySyncer = this;
+				myDepGroup[i].setMyObserver(this);
 			}
 			setBackPreference(true);
 		}
@@ -293,7 +316,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 			try {
 				myDepGroup[depgrouplen] = rs;
 				depgrouplen++;
-				rs.mySyncer = this;
+				//TODO: change Observer
+				//rs.mySyncer = this;
+				rs.setMyObserver(this);
 			} catch (ArrayIndexOutOfBoundsException e) {
 				ResourceSpreader[] newdg = new ResourceSpreader[myDepGroup.length * 7];
 				System.arraycopy(myDepGroup, 0, newdg, 0, depgrouplen);
@@ -324,7 +349,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 					}
 					firstConsumerId++;
 				}
-				rs.mySyncer = this;
+				//TODO: change Observer
+				//rs.mySyncer = this;
+				rs.setMyObserver(this);
 			}
 		}
 
@@ -506,16 +533,24 @@ public abstract class ResourceSpreader extends ObservableResource{
 							if (!isInDepGroup(cp)) {
 								// No it is not, we need an extension
 								didExtension = true;
-								if (cp.mySyncer == null || cp.mySyncer == this) {
+								//TODO: change Observer
+								//if (cp.mySyncer == null || cp.mySyncer == this) {
+								  if (cp.getMyObserver() == null || cp.getMyObserver() == this) {
 									// Just this single item is missing
 									if (!depGroupExtension.contains(cp)) {
 										depGroupExtension.add(cp);
 									}
 								} else {
 									// There are further items missing
-									cp.mySyncer.unsubscribe();
-									for (int j = 0; j < cp.mySyncer.depgrouplen; j++) {
-										final ResourceSpreader todepgroupextension = cp.mySyncer.myDepGroup[j];
+									//TODO: change Observer
+									//cp.mySyncer.unsubscribe();
+									cp.getMyObserver().unsubscribeObserver();
+									//TODO: change Observer
+									//for (int j = 0; j < cp.mySyncer.depgrouplen; j++) {
+									  for (int j = 0; j < cp.getMyObserver().getDepgroupLength(); j++) {
+										final ResourceSpreader todepgroupextension = cp.getMyObserver().getObserverDependecyGroupMember(j);
+												//TODO: change Observer
+												//cp.mySyncer.myDepGroup[j];
 										if (!depGroupExtension.contains(todepgroupextension)) {
 											depGroupExtension.add(todepgroupextension);
 										}
@@ -523,7 +558,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 									// Make sure, that if we encounter this cp
 									// next time we will not try to add all its
 									// dep group
-									cp.mySyncer = null;
+									//TODO: change Observer
+									//cp.mySyncer = null;
+									  cp.setMyObserver(null);
 								}
 							}
 						}
@@ -554,7 +591,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 						if (rs.stillInDepGroup) {
 							break;
 						}
-						rs.mySyncer = null;
+						//TODO: change Observer
+						//rs.mySyncer = null;
+						rs.setMyObserver(null);
 					}
 					if (classifiableindex < notClassifiedLen) {
 						notClassifiedLen -= classifiableindex;
@@ -697,7 +736,9 @@ public abstract class ResourceSpreader extends ObservableResource{
 	 * @return the object representing this spreader's influence group.
 	 */
 	public final FreqSyncer getSyncer() {
-		return mySyncer;
+		//TODO: change Observer
+		//return mySyncer;
+		return (FreqSyncer) watcher;
 	}
 
 	/**
@@ -725,8 +766,14 @@ public abstract class ResourceSpreader extends ObservableResource{
 			underRemoval.add(conList[i]);
 			ArrayHandler.removeAndReplaceWithLast(underAddition, conList[i]);
 		}
+		///TODO: change Observer
+		/*
 		if (mySyncer != null) {
 			mySyncer.nudge();
+		}
+		*/
+		if (this.getMyObserver() != null){
+			this.getMyObserver().nudgeObserver();
 		}
 	}
 
@@ -766,6 +813,8 @@ public abstract class ResourceSpreader extends ObservableResource{
 		consumer.underAddition.add(con);
 
 		boolean notnudged = true;
+		///TODO: change Observer
+		/*
 		if (provider.mySyncer != null) {
 			provider.mySyncer.nudge();
 			notnudged = false;
@@ -775,6 +824,18 @@ public abstract class ResourceSpreader extends ObservableResource{
 			consumer.mySyncer.nudge();
 			notnudged = false;
 		}
+		*/
+		if (provider.getMyObserver() != null){
+			provider.getMyObserver().nudgeObserver();
+			notnudged = false;
+		}
+		
+		if (consumer.getMyObserver() != null){
+			consumer.getMyObserver().nudgeObserver();
+			notnudged = false;
+		}
+		
+		
 		if (notnudged) {
 			// We just form our new influence group
 			new FreqSyncer(provider, consumer).nudge();
@@ -838,9 +899,16 @@ public abstract class ResourceSpreader extends ObservableResource{
 	 *            the time at which this processing task must take place.
 	 */
 	private void doProcessing(final long currentFireCount) {
+		///TODO: change Observer
+		/*
 		if (currentFireCount == lastNotifTime && mySyncer.isRegularFreqMode()) {
 			return;
 		}
+		*/
+		if (currentFireCount == lastNotifTime && this.getMyObserver().observerRegularFreqMode()) {
+			return;
+		}
+		
 		ResourceConsumption[] toRemove = null;
 		boolean firsthit = true;
 		int remIdx = 0;
@@ -943,13 +1011,19 @@ public abstract class ResourceSpreader extends ObservableResource{
 	 *         will report the amount of instructions executed so far by the PM.
 	 */
 	public double getTotalProcessed() {
-		if (mySyncer != null) {
+		// TODO: change Observer
+		//if (mySyncer != null) {
+		  if (this.getMyObserver() != null) {
 			final long currTime = Timed.getFireCount();
 			if (isConsumer()) {
 				// We first have to make sure the providers provide the
 				// stuff that this consumer might need
-				final int len = mySyncer.getFirstConsumerId();
-				final ResourceSpreader[] dg = mySyncer.myDepGroup;
+				// TODO: change Observer
+				//final int len = mySyncer.getFirstConsumerId();
+				//final ResourceSpreader[] dg = mySyncer.myDepGroup;
+				final int len = this.getMyObserver().observerGetFirstConsumerID();
+				final ResourceSpreader[] dg = this.getMyObserver().observerGetDependencyGroup();
+				
 				for (int i = 0; i < len; i++) {
 					dg[i].doProcessing(currTime);
 				}
