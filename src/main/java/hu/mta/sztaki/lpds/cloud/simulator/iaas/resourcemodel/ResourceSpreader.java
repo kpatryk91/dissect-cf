@@ -34,6 +34,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.IObservable;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.IObserver;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.ObservableResource;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.PowerStateChangeNotificationHandler;
 import hu.mta.sztaki.lpds.cloud.simulator.notifications.StateDependentEventHandler;
 import hu.mta.sztaki.lpds.cloud.simulator.util.ArrayHandler;
@@ -55,7 +58,7 @@ import hu.mta.sztaki.lpds.cloud.simulator.util.ArrayHandler;
  *         "Gabor Kecskemeti, Laboratory of Parallel and Distributed Systems, MTA SZTAKI (c) 2012"
  * 
  */
-public abstract class ResourceSpreader {
+public abstract class ResourceSpreader extends ObservableResource{
 
 	// These final variables define the base behavior of the class:
 	/**
@@ -87,6 +90,17 @@ public abstract class ResourceSpreader {
 	 * The influence group in which this resource spreader belongs.
 	 */
 	private FreqSyncer mySyncer = null;
+	IObserver watcher = null;
+	
+	@Override
+	public IObserver getMyObserver() {
+		return this.watcher;
+	}
+	
+	@Override
+	public void setMyObserver(IObserver watcher) {
+		this.watcher = watcher;
+	}
 	/**
 	 * The resource consumptions that got registered to this spreader in the
 	 * last tick
@@ -157,7 +171,27 @@ public abstract class ResourceSpreader {
 	 *         "Gabor Kecskemeti, Laboratory of Parallel and Distributed Systems, MTA SZTAKI (c) 2015"
 	 *
 	 */
-	public static class FreqSyncer extends Timed {
+	public static class FreqSyncer extends Timed implements IObserver{
+		
+		@Override
+		public void processingPowerChanged(ResourceSpreader source, double oldProcessingPower){
+			
+		}
+		@Override
+		public void unsubscribeObserver(){
+			
+		}
+		@Override
+		public int getDepgroupLength(){
+			return 0;
+		}
+		@Override
+		public ResourceSpreader getObserverDependecyGroupMember(int i){
+			return null;
+		}
+		
+		
+		
 		/**
 		 * The influence group managed by this freqsyncer object.
 		 * 
