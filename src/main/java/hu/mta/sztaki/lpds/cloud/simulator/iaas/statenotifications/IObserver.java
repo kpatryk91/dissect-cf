@@ -11,22 +11,7 @@ import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
  */
 public interface IObserver {
 	
-	void processingPowerChanged(ResourceSpreader source, double oldProcessingPower);
+	void update(ResourceSpreader source, String command);
 	
-	void unsubscribeObserver();
-	
-	int getDepgroupLength();
-	
-	ResourceSpreader getObserverDependecyGroupMember(int i);
-	
-	void nudgeObserver();
-	
-	boolean observerRegularFreqMode();
-	
-	int observerGetFirstConsumerID();
-	
-	boolean observerIsSubscribed();
-	
-	ResourceSpreader[] observerGetDependencyGroup();
-	
+	Object getState(String command);
 }

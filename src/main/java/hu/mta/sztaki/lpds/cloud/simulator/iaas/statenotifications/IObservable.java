@@ -1,16 +1,23 @@
 package hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications;
 
 /**
- * This interface defines the methods to 
+ * This is the interface what the observable class should implement.
  * @author Patrik
  *
  */
 
 public interface IObservable {
 	
-	IObserver getMyObserver();
+	/**
+	 * 
+	 * @return IObservable
+	 */
+	public IObserver getObserver();
 	
-	void setMyObserver(IObserver watcher);
+	public void setObserver(IObserver observer);
 	
-	// TODO: change Observer
+	public void notifyObserver(String change);
+	
+	public Object getObserverState(String command);
+	
 }
