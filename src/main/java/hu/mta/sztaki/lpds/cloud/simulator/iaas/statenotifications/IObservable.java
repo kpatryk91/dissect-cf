@@ -3,7 +3,7 @@ package hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications;
 /**
  * This is the interface what the observable class should implement.
  * @author Patrik
- *
+ * @deprecated
  */
 
 public interface IObservable {

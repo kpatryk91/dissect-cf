@@ -7,7 +7,8 @@ import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
  * This interface defines the methods to the 
  * 
  * @author Patrik
- * @category Interface 
+ * @category Interface
+ * @deprecated 
  */
 public interface IObserver {
 	
