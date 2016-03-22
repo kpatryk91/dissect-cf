@@ -245,7 +245,7 @@ public abstract class ResourceSpreader implements
 		 *            Why the notification was sent.
 		 */
 		@Override
-		public void notifyObserver(ResourceSpreader notificationSource, NotificationState notificationState) {
+		public void notifyObserver(final ResourceSpreader notificationSource, final NotificationState notificationState) {
 
 			/**
 			 * If the notification was Nudge.
@@ -263,15 +263,57 @@ public abstract class ResourceSpreader implements
 
 			/**
 			 * The sender spreader processing power was changed and<br>
-			 * the syncer needs to recalculate resources.
+			 * the syncer needs to recalculate the resources.
 			 */
 			if (notificationState == NotificationState.PROC_POWER_CHANGED) {
-				if (isSubscribed()){
-					unsubscribe();
-					updateMyFreqNow();
-					subscribe(getFrequency());
-				} else {
-					updateMyFreqNow();
+				
+				/*
+				 * Elso otlet:
+				 * Nudge nem true => nem dolgozik kulso esemeny
+				 * ezert indithato nudge, ami 0 frekvenciaval beallitja a syncert
+				 * ami így a fire() alatt ismet sorra kerul es a rendszer elvegzi a tick alatt
+				 * az adott ujrautemezest es feldolgozast.
+				 */
+				
+				
+				/*
+				 * Masodik otlet
+				 */
+				/**
+				 * Mar folyamatban van egy kulso esemeny, ami modositast vegez a csoporton.
+				 * Gondolom ez tick / algorithm I. extension group resz
+				 * O majd meghivja az updatet
+				 */
+				if (nudged == true){
+					return;
+				}			
+				boolean subscribe = isSubscribed();
+				// a megvaltozott teljesitmeny miatt el kell inditani egy utemezest
+				final long newFreq = notificationSource.singleGroupwiseFreqUpdater();
+				// vagy ez, de ez hosszabb
+				//long SysTime = this.getFireCount();
+				//this.tick(SysTime);
+				regularFreqMode = newFreq != 0;
+				try {
+					updateFrequency(newFreq);
+				} catch (IllegalStateException e){
+					if (e.getMessage().equals("ERROR: Negative event frequency cannot simulate further!")){
+						// hiba eseten leiratkozas az esemenysorbol
+						this.unsubscribe();
+					}
+						
+					if (e.getMessage().startsWith("Event to never occur: ")){
+						// hiba eseten leirakozas az esemenysorbol
+						this.unsubscribe();
+					}
+			
+				}
+				/*
+				 * Ha nem volt feliratkozva a syncer, akkor leirakozunk.
+				 * Meg nem elemeztem ki, hogy lehet-e ilyen eset.
+				 */
+				if (subscribe == false){
+					this.unsubscribe();
 				}
 			}
 		};
@@ -1137,10 +1179,18 @@ public abstract class ResourceSpreader implements
 		// while it is subscribed!");
 		// }
 		if (stateObserver != null) {
+			/**
+			 * The processing power is changed.
+			 * Need to update the influence group with the changes.
+			 */
 			this.perTickProcessingPower = perTickProcessingPower;
 			this.negligableProcessing = this.perTickProcessingPower / 1000000000;
 			stateObserver.notifyObserver(this, NotificationState.PROC_POWER_CHANGED);
 		} else {
+			/**
+			 * This spreader is not in any influence group.
+			 * Normal value set.
+			 */
 			this.perTickProcessingPower = perTickProcessingPower;
 			this.negligableProcessing = this.perTickProcessingPower / 1000000000;
 		}

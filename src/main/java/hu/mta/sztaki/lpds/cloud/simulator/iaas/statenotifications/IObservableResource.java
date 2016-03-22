@@ -12,7 +12,7 @@ import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader.Fr
 public interface IObservableResource<T, S> {
 	
 	/**
-	 * This method gives the observer back.
+	 * This method gives back the observer.
 	 * @return <T> the observer
 	 */
 	public T getStateObserver();
@@ -30,7 +30,7 @@ public interface IObservableResource<T, S> {
 	public void notifyStateObserver(S state);
 	
 	/**
-	 * This method gives the inner Syncer of the observer back.
+	 * This method gives back the inner Syncer of the observer.
 	 * @return The inner FreqSyncer object.
 	 */
 	public FreqSyncer getStateObserverSyncer();
