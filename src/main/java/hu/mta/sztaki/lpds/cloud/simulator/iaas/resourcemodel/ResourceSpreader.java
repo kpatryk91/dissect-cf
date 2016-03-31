@@ -286,34 +286,20 @@ public abstract class ResourceSpreader implements
 				 */
 				if (nudged == true){
 					return;
-				}			
-				boolean subscribe = isSubscribed();
+				}
+				
+				
 				// a megvaltozott teljesitmeny miatt el kell inditani egy utemezest
 				final long newFreq = notificationSource.singleGroupwiseFreqUpdater();
 				// vagy ez, de ez hosszabb
 				//long SysTime = this.getFireCount();
 				//this.tick(SysTime);
-				regularFreqMode = newFreq != 0;
-				try {
-					updateFrequency(newFreq);
-				} catch (IllegalStateException e){
-					if (e.getMessage().equals("ERROR: Negative event frequency cannot simulate further!")){
-						// hiba eseten leiratkozas az esemenysorbol
-						this.unsubscribe();
-					}
-						
-					if (e.getMessage().startsWith("Event to never occur: ")){
-						// hiba eseten leirakozas az esemenysorbol
-						this.unsubscribe();
-					}
-			
-				}
-				/*
-				 * Ha nem volt feliratkozva a syncer, akkor leirakozunk.
-				 * Meg nem elemeztem ki, hogy lehet-e ilyen eset.
-				 */
-				if (subscribe == false){
-					this.unsubscribe();
+				regularFreqMode = newFreq != 0;			
+				updateFrequency(newFreq);
+				nudged = false;
+		
+				if (isSubscribed() == false){
+					throw new IllegalStateException("ERROR: The group is no more subscribed!");
 				}
 			}
 		};
@@ -1183,9 +1169,20 @@ public abstract class ResourceSpreader implements
 			 * The processing power is changed.
 			 * Need to update the influence group with the changes.
 			 */
-			this.perTickProcessingPower = perTickProcessingPower;
-			this.negligableProcessing = this.perTickProcessingPower / 1000000000;
-			stateObserver.notifyObserver(this, NotificationState.PROC_POWER_CHANGED);
+			if (stateObserver.getObserverInnerSyncer().isSubscribed() == true){
+				this.perTickProcessingPower = perTickProcessingPower;
+				this.negligableProcessing = this.perTickProcessingPower / 1000000000;
+				// resource changed need to call an algorithm
+				stateObserver.notifyObserver(this, NotificationState.PROC_POWER_CHANGED);
+				
+			} else {
+				/**
+				 * This influence group is not subscribed
+				 * so doesn't need to call any algorithm. 
+				 */				
+				this.perTickProcessingPower = perTickProcessingPower;
+				this.negligableProcessing = this.perTickProcessingPower / 1000000000;
+			}				
 		} else {
 			/**
 			 * This spreader is not in any influence group.

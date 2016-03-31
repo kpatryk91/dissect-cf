@@ -104,18 +104,21 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		 * The machine is completely switched off, minimal consumption is
 		 * recorded.
 		 */
-		OFF, /**
-				 * The machine is under preparation to serve VMs. Some
-				 * consumption is recorded already.
-				 */
-		SWITCHINGON, /**
-						 * The machine is currently serving VMs. The machine and
-						 * its VMs are consuming energy.
-						 */
-		RUNNING, /**
-					 * The machine is about to be switched off. It no longer
-					 * accepts VM requests but it still consumes energy.
-					 */
+		OFF,
+		/**
+		 * The machine is under preparation to serve VMs. Some consumption is
+		 * recorded already.
+		 */
+		SWITCHINGON,
+		/**
+		 * The machine is currently serving VMs. The machine and its VMs are
+		 * consuming energy.
+		 */
+		RUNNING,
+		/**
+		 * The machine is about to be switched off. It no longer accepts VM
+		 * requests but it still consumes energy.
+		 */
 		SWITCHINGOFF
 	};
 
@@ -548,7 +551,64 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	/**
 	 * the complete resouce set of the pm
 	 */
-	private final ConstantConstraints totalCapacities;
+	// TODO: capacity change
+	private ConstantConstraints totalCapacities;
+
+	/**
+	 * With this method you can change the parameters of the physical machine.
+	 * 
+	 * @param cores
+	 *            The number of cpus. If this value is 0, then the old value
+	 *            will be used.
+	 * @param perCoreProcessingPower
+	 *            The per core processing power. <br>
+	 *            If this value is 0, then the old value will be used.
+	 * @param memory
+	 *            The available memory of this physical machine. <br>
+	 *            If this value is 0, then the old value will be used.
+	 * @throws IllegalStateException
+	 *             If any of the parameters is less than 0.
+	 */
+	public void changeCapacity(final double cores, final double perCoreProcessingPower, final long memory)
+			throws IllegalStateException {
+
+		if (cores <= 0 || perCoreProcessingPower <= 0 || memory <= 0) {
+			throw new IllegalStateException("ERROR: Invalid parameter value!");
+		}
+
+		double newCores = (cores == 0) ? totalCapacities.getRequiredCPUs() : cores;
+		double newPerTickPower = (perCoreProcessingPower == 0) ? totalCapacities.getRequiredProcessingPower()
+				: perCoreProcessingPower;
+		long newMemory = (memory == 0) ? totalCapacities.getRequiredMemory() : memory;
+		
+		ConstantConstraints newState = new ConstantConstraints(newCores, newPerTickPower, newMemory);
+		
+		totalCapacities = newState;
+		setPerTickProcessingPower(newCores * newPerTickPower);
+		
+		
+		//FreqSyncer myGroupSyncer = getSyncer();	
+		
+		/*
+		if (myGroupSyncer == null) {
+			totalCapacities = newState;
+			return;
+		} else {
+			
+			if (myGroupSyncer.isSubscribed() == false) {
+				totalCapacities = newState;
+				setPerTickProcessingPower(newMemory * newPerTickPower); 
+				return;
+				
+			} else {
+				totalCapacities = newState;
+				setPerTickProcessingPower(perCoreProcessingPower * cores);
+			}
+		}
+		*/
+
+	}
+
 	/**
 	 * the resource set that does not have a VM running on it
 	 * 
@@ -639,13 +699,14 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		 * the powerstate definitions belong to the cpu and memory resources of
 		 * the PM
 		 */
-		host, /**
-				 * the powerstate definitions belong to the local disk of the PM
-				 */
-		storage, /**
-					 * the powerstate definitions belong to the network
-					 * interface of the PM
-					 */
+		host,
+		/**
+		 * the powerstate definitions belong to the local disk of the PM
+		 */
+		storage,
+		/**
+		 * the powerstate definitions belong to the network interface of the PM
+		 */
 		network
 	};
 
