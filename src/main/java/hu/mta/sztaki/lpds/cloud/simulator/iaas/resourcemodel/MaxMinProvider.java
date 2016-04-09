@@ -25,6 +25,10 @@
 
 package hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel;
 
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.behaviourChange;
+import hu.mta.sztaki.lpds.cloud.simulator.io.NetworkNode;
+import hu.mta.sztaki.lpds.cloud.simulator.notifications.SingleNotificationHandler;
+
 /**
  * This class is part of the unified resource consumption model of DISSECT-CF.
  * 
@@ -38,7 +42,16 @@ package hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel;
  * @author "Gabor Kecskemeti, Distributed and Parallel Systems Group, University of Innsbruck (c) 2013"
  *
  */
-public class MaxMinProvider extends MaxMinFairSpreader {
+public class MaxMinProvider extends MaxMinFairSpreader implements SingleNotificationHandler<NetworkNode, behaviourChange>{
+	
+	// TODO: Decorator, DVFS, Cores change
+	@Override
+	public void sendNotification(NetworkNode onObject, behaviourChange payload) {
+		setPerTickProcessingPower(payload.getCapacityChange());
+		
+	}
+	
+	
 	/**
 	 * Constructs a generic Max Min fairness based resource producer.
 	 * 
@@ -49,6 +62,8 @@ public class MaxMinProvider extends MaxMinFairSpreader {
 	public MaxMinProvider(final double initialProcessing) {
 		super(initialProcessing);
 	}
+
+	
 
 	/**
 	 * Translates the consumption limit update request to actually changing a

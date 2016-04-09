@@ -31,6 +31,7 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -40,6 +41,7 @@ import gnu.trove.list.linked.TDoubleLinkedList;
 import hu.mta.sztaki.lpds.cloud.simulator.DeferredEvent;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehavior;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.AlterableResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ResourceConstraints;
@@ -551,9 +553,126 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	/**
 	 * the complete resouce set of the pm
 	 */
-	// TODO: capacity change
 	private ConstantConstraints totalCapacities;
 
+	// TODO: Decorator, DVFS, Cores change
+	// Hiányzik: felíratkozás (Monitor)
+	// Viselkedés visszavonás
+	// 
+	/**
+	 * Physical machine maximum capacity
+	 */
+	private final ConstantConstraints maximumCapacity;
+
+	private List<MachineBehaviour> behaviourList = new LinkedList<MachineBehaviour>();
+	private boolean isDVFS;
+	private boolean isOnOf;
+
+	private abstract class MachineBehaviour {
+
+		public abstract void changeBevaviour();
+	}
+
+	private class DVFSBehaviour extends MachineBehaviour {
+		
+		// ezt majd még le kell kérni és tárolni
+		private double prevTotalProcessed;
+
+		/**
+		 * 
+		 */
+		@Override
+		public void changeBevaviour() {
+			// TODO Auto-generated method stub
+			double diff = getTotalProcessed() - prevTotalProcessed;
+			prevTotalProcessed = getTotalProcessed();
+			double newProcPower = prevTotalProcessed * 1.2;
+			if (newProcPower > maximumCapacity.getTotalProcessingPower()) {
+				newProcPower = maximumCapacity.getTotalProcessingPower();
+			}
+			//totalCapacities -nak új érték
+			double prevPerTickPower = getPerTickProcessingPower();
+			setPerTickProcessingPower(newProcPower);
+			/**
+			 * Energy elv:
+			 * 	CPU alapfogyasztás alá nem mehet
+			 * 	változik a magonkénti telejsítmény => változik a range
+			 *  Van 4 cpu / 10 pertickProcPower =>  40 totalProcPower
+			 *  Fogyasztás: alap 10 W/cpu + 5W növ
+			 *  így 40 W min + 20 W range
+			 *  megváltozik a perCorePower 10 => 5
+			 *  1) Range / Core =>  5 W per core
+			 *  2) 5W * (mostaniPercTick / RégiPercTick) => 2.5
+			 *  3) ujrange 2.5 * cpu-k száma => 2,5 * 4 => 10.
+			 */
+			PowerState powerState = getCurrentPowerBehavior();
+			double perCoreWatt = powerState.getConsumptionRange() / totalCapacities.getRequiredCPUs();
+			double newPerCoreWatt = powerState.getConsumptionRange() * (getPerTickProcessingPower()/prevPerTickPower);
+			powerState.setConsumptionRange(newPerCoreWatt * totalCapacities.getRequiredCPUs()); 
+		}
+	}
+
+	private class OnOffBehaviour extends MachineBehaviour {
+
+		// Működés vázlat példa
+		public void onoff() {
+			
+			double consumption = 0;
+			// 
+			for(ResourceConsumption i : underProcessing) {
+				consumption += i.getRealLimit();
+			}
+			double actualCapacity = totalCapacities.getTotalProcessingPower();
+			
+			double coreNumber = 0;
+			
+			/**
+			 *  Energy elv:
+			 *  CPU kiesik, arányosan mindkét érték csökken.
+			 *  Van 4 cpu / 10 pertickProcPower =>  40 totalProcPower
+			 *  Fogyasztás: alap 10 W/cpu + 5W növ
+			 *  így 40 W min + 20 W range
+			 *  1 cpu kiesik =>
+			 *  lesz 30 W min + 15 W range, arányosan.
+			 */
+			
+			
+		}
+
+		@Override
+		public void changeBevaviour() {
+			// TODO Auto-generated method stub
+
+		}
+	}
+
+	public boolean addBeheviour(final PhysicalMachineBehavior behaviour) {
+
+		switch (behaviour) {
+
+		case DVFS:
+			if (isDVFS == false) {
+				isDVFS = true;
+				behaviourList.add(new DVFSBehaviour());
+				return true;
+			}
+			return false;
+
+		case CoreOnOff:
+			if (isOnOf == false) {
+				isOnOf = true;
+				behaviourList.add(new OnOffBehaviour());
+				return true;
+			}
+			return false;
+		}
+		return false;
+	}
+
+	public void removeBehaviour(final PhysicalMachineBehavior behaviour) {
+		
+	}
+	
 	/**
 	 * With this method you can change the parameters of the physical machine.
 	 * 
@@ -580,32 +699,25 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		double newPerTickPower = (perCoreProcessingPower == 0) ? totalCapacities.getRequiredProcessingPower()
 				: perCoreProcessingPower;
 		long newMemory = (memory == 0) ? totalCapacities.getRequiredMemory() : memory;
-		
+
 		ConstantConstraints newState = new ConstantConstraints(newCores, newPerTickPower, newMemory);
-		
+
 		totalCapacities = newState;
 		setPerTickProcessingPower(newCores * newPerTickPower);
-		
-		
-		//FreqSyncer myGroupSyncer = getSyncer();	
-		
+
+		// FreqSyncer myGroupSyncer = getSyncer();
+
 		/*
-		if (myGroupSyncer == null) {
-			totalCapacities = newState;
-			return;
-		} else {
-			
-			if (myGroupSyncer.isSubscribed() == false) {
-				totalCapacities = newState;
-				setPerTickProcessingPower(newMemory * newPerTickPower); 
-				return;
-				
-			} else {
-				totalCapacities = newState;
-				setPerTickProcessingPower(perCoreProcessingPower * cores);
-			}
-		}
-		*/
+		 * if (myGroupSyncer == null) { totalCapacities = newState; return; }
+		 * else {
+		 * 
+		 * if (myGroupSyncer.isSubscribed() == false) { totalCapacities =
+		 * newState; setPerTickProcessingPower(newMemory * newPerTickPower);
+		 * return;
+		 * 
+		 * } else { totalCapacities = newState;
+		 * setPerTickProcessingPower(perCoreProcessingPower * cores); } }
+		 */
 
 	}
 
@@ -875,6 +987,9 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		super(cores * perCorePocessing);
 		// Init resources:
 		totalCapacities = new ConstantConstraints(cores, perCorePocessing, memory);
+		// TODO: Decorator, DVFS, Cores change
+		// set the maximum capacity
+		maximumCapacity = new ConstantConstraints(totalCapacities);
 		internalAvailableCaps = new AlterableResourceConstraints(totalCapacities);
 		availableCapacities = new UnalterableConstraintsPropagator(internalAvailableCaps);
 		internalReallyFreeCaps = new AlterableResourceConstraints(totalCapacities);

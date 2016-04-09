@@ -26,10 +26,14 @@
 package hu.mta.sztaki.lpds.cloud.simulator.io;
 
 import hu.mta.sztaki.lpds.cloud.simulator.DeferredEvent;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.behaviourChange;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.MaxMinConsumer;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.MaxMinProvider;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceConsumption;
+import hu.mta.sztaki.lpds.cloud.simulator.notifications.SingleNotificationHandler;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -99,6 +103,27 @@ public class NetworkNode {
 		}
 	}
 
+	// TODO: Decorator, DVFS, Cores change
+	private List<SingleNotificationHandler<NetworkNode, behaviourChange>> observers = new ArrayList<SingleNotificationHandler<NetworkNode, behaviourChange>>();
+	
+	/**
+	 * This methode changes the IO capacity of the current NetworkNode.<br>
+	 * IO capacity: Input and output network capacity.
+	 * @param newCapacity The capacity in bytes/tick. <br>
+	 * The value must be greater than zero.
+	 * @throws IllegalStateException if the parameter doesnt meet the criterias.
+	 * 
+	 */
+	public void changeNodeIOCapacity(final double newCapacity) {
+		if (newCapacity <= 0) {
+			throw new IllegalStateException("ERROR: Invalid network node IO capacity: " + newCapacity);
+		}
+		
+		for(SingleNotificationHandler<NetworkNode, behaviourChange> i : observers) {
+			i.sendNotification(this, new behaviourChange("Capacity changed", newCapacity));
+		}
+	}
+
 	/**
 	 * Models the incoming network connections of this network node
 	 */
@@ -159,6 +184,9 @@ public class NetworkNode {
 		name = id;
 		outbws = new MaxMinProvider(maxOutBW);
 		inbws = new MaxMinConsumer(maxInBW);
+		// TODO: Decorator, DVFS, Cores change
+		observers.add(inbws);
+		observers.add(outbws);
 		diskinbws = new MaxMinConsumer(diskBW / 2f);
 		diskoutbws = new MaxMinProvider(diskBW / 2f);
 		// Just making sure we will have enough bandwidht for every operation we
