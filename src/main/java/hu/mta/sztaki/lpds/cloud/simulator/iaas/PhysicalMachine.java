@@ -41,7 +41,8 @@ import gnu.trove.list.linked.TDoubleLinkedList;
 import hu.mta.sztaki.lpds.cloud.simulator.DeferredEvent;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
-import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehavior;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehaviourFactory;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehaviourFactory.BaseBehaviour;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.AlterableResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ResourceConstraints;
@@ -556,169 +557,52 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	private ConstantConstraints totalCapacities;
 
 	// TODO: Decorator, DVFS, Cores change
-	// Hiányzik: felíratkozás (Monitor)
-	// Viselkedés visszavonás
-	// 
 	/**
 	 * Physical machine maximum capacity
 	 */
 	private final ConstantConstraints maximumCapacity;
 
-	private List<MachineBehaviour> behaviourList = new LinkedList<MachineBehaviour>();
-	private boolean isDVFS;
-	private boolean isOnOf;
-
-	private abstract class MachineBehaviour {
-
-		public abstract void changeBevaviour();
-	}
-
-	private class DVFSBehaviour extends MachineBehaviour {
-		
-		// ezt majd még le kell kérni és tárolni
-		private double prevTotalProcessed;
-
-		/**
-		 * 
-		 */
-		@Override
-		public void changeBevaviour() {
-			// TODO Auto-generated method stub
-			double diff = getTotalProcessed() - prevTotalProcessed;
-			prevTotalProcessed = getTotalProcessed();
-			double newProcPower = prevTotalProcessed * 1.2;
-			if (newProcPower > maximumCapacity.getTotalProcessingPower()) {
-				newProcPower = maximumCapacity.getTotalProcessingPower();
-			}
-			//totalCapacities -nak új érték
-			double prevPerTickPower = getPerTickProcessingPower();
-			setPerTickProcessingPower(newProcPower);
-			/**
-			 * Energy elv:
-			 * 	CPU alapfogyasztás alá nem mehet
-			 * 	változik a magonkénti telejsítmény => változik a range
-			 *  Van 4 cpu / 10 pertickProcPower =>  40 totalProcPower
-			 *  Fogyasztás: alap 10 W/cpu + 5W növ
-			 *  így 40 W min + 20 W range
-			 *  megváltozik a perCorePower 10 => 5
-			 *  1) Range / Core =>  5 W per core
-			 *  2) 5W * (mostaniPercTick / RégiPercTick) => 2.5
-			 *  3) ujrange 2.5 * cpu-k száma => 2,5 * 4 => 10.
-			 */
-			PowerState powerState = getCurrentPowerBehavior();
-			double perCoreWatt = powerState.getConsumptionRange() / totalCapacities.getRequiredCPUs();
-			double newPerCoreWatt = powerState.getConsumptionRange() * (getPerTickProcessingPower()/prevPerTickPower);
-			powerState.setConsumptionRange(newPerCoreWatt * totalCapacities.getRequiredCPUs()); 
-		}
-	}
-
-	private class OnOffBehaviour extends MachineBehaviour {
-
-		// Működés vázlat példa
-		public void onoff() {
-			
-			double consumption = 0;
-			// 
-			for(ResourceConsumption i : underProcessing) {
-				consumption += i.getRealLimit();
-			}
-			double actualCapacity = totalCapacities.getTotalProcessingPower();
-			
-			double coreNumber = 0;
-			
-			/**
-			 *  Energy elv:
-			 *  CPU kiesik, arányosan mindkét érték csökken.
-			 *  Van 4 cpu / 10 pertickProcPower =>  40 totalProcPower
-			 *  Fogyasztás: alap 10 W/cpu + 5W növ
-			 *  így 40 W min + 20 W range
-			 *  1 cpu kiesik =>
-			 *  lesz 30 W min + 15 W range, arányosan.
-			 */
-			
-			
-		}
-
-		@Override
-		public void changeBevaviour() {
-			// TODO Auto-generated method stub
-
-		}
-	}
-
-	public boolean addBeheviour(final PhysicalMachineBehavior behaviour) {
-
-		switch (behaviour) {
-
-		case DVFS:
-			if (isDVFS == false) {
-				isDVFS = true;
-				behaviourList.add(new DVFSBehaviour());
-				return true;
-			}
-			return false;
-
-		case CoreOnOff:
-			if (isOnOf == false) {
-				isOnOf = true;
-				behaviourList.add(new OnOffBehaviour());
-				return true;
-			}
-			return false;
-		}
-		return false;
-	}
-
-	public void removeBehaviour(final PhysicalMachineBehavior behaviour) {
-		
-	}
-	
 	/**
-	 * With this method you can change the parameters of the physical machine.
 	 * 
 	 * @param cores
-	 *            The number of cpus. If this value is 0, then the old value
-	 *            will be used.
-	 * @param perCoreProcessingPower
-	 *            The per core processing power. <br>
-	 *            If this value is 0, then the old value will be used.
-	 * @param memory
-	 *            The available memory of this physical machine. <br>
-	 *            If this value is 0, then the old value will be used.
-	 * @throws IllegalStateException
-	 *             If any of the parameters is less than 0.
+	 *            if value < 0 => IllegalStateException<br>
+	 *            if value = 0 => previous value will be used.
+	 * @param perCorePower
 	 */
-	public void changeCapacity(final double cores, final double perCoreProcessingPower, final long memory)
-			throws IllegalStateException {
+	public void setCapacity(double cores, double perCorePower) {
 
-		if (cores <= 0 || perCoreProcessingPower <= 0 || memory <= 0) {
-			throw new IllegalStateException("ERROR: Invalid parameter value!");
+		if (cores < 0 || perCorePower < 0) {
+			throw new IllegalStateException(
+					"ERROR: Invalid argument value: " + "cores: " + cores + " perCorePower: " + perCorePower);
 		}
-
-		double newCores = (cores == 0) ? totalCapacities.getRequiredCPUs() : cores;
-		double newPerTickPower = (perCoreProcessingPower == 0) ? totalCapacities.getRequiredProcessingPower()
-				: perCoreProcessingPower;
-		long newMemory = (memory == 0) ? totalCapacities.getRequiredMemory() : memory;
-
-		ConstantConstraints newState = new ConstantConstraints(newCores, newPerTickPower, newMemory);
-
+		double newCore = totalCapacities.getRequiredCPUs();
+		double newPerCore = totalCapacities.getRequiredProcessingPower();
+		if (cores != 0) {
+			newCore = cores;
+		}
+		
+		if (perCorePower != 0 ) {
+			newPerCore = perCorePower;
+		}
+		ConstantConstraints newState = new ConstantConstraints(newCore, newPerCore, totalCapacities.getRequiredMemory());
 		totalCapacities = newState;
-		setPerTickProcessingPower(newCores * newPerTickPower);
+		setPerTickProcessingPower(newCore * newPerCore); 
+	}
 
-		// FreqSyncer myGroupSyncer = getSyncer();
+	public ConstantConstraints getMaximumCapacity() {
+		return maximumCapacity;
+	}
 
-		/*
-		 * if (myGroupSyncer == null) { totalCapacities = newState; return; }
-		 * else {
-		 * 
-		 * if (myGroupSyncer.isSubscribed() == false) { totalCapacities =
-		 * newState; setPerTickProcessingPower(newMemory * newPerTickPower);
-		 * return;
-		 * 
-		 * } else { totalCapacities = newState;
-		 * setPerTickProcessingPower(perCoreProcessingPower * cores); } }
-		 */
+	private List<PhysicalMachineBehaviourFactory.BaseBehaviour> behaviourList = new LinkedList<BaseBehaviour>();
 
+	public void addBehaviour(final PhysicalMachineBehaviourFactory.BaseBehaviour beh) {
+		beh.addobservedPM(this);
+		behaviourList.add(beh);
+	}
+
+	public void removeBehaviour(final PhysicalMachineBehaviourFactory.BaseBehaviour beh) {
+		beh.removingBehaviour();
+		behaviourList.remove(beh);
 	}
 
 	/**
