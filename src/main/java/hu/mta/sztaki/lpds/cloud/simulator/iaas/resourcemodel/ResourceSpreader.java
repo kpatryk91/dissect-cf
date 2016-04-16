@@ -28,16 +28,22 @@ package hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Pair;
 
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.BehaviourFactory;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.SpreaderBehaviour;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.behaviourChange;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.IObservableResource;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.IStateChangedNotificationObserver;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.NotificationState;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.statenotifications.PowerStateChangeNotificationHandler;
+import hu.mta.sztaki.lpds.cloud.simulator.io.NetworkNode;
+import hu.mta.sztaki.lpds.cloud.simulator.notifications.SingleNotificationHandler;
 import hu.mta.sztaki.lpds.cloud.simulator.notifications.StateDependentEventHandler;
 import hu.mta.sztaki.lpds.cloud.simulator.util.ArrayHandler;
 
@@ -59,7 +65,8 @@ import hu.mta.sztaki.lpds.cloud.simulator.util.ArrayHandler;
  * 
  */
 public abstract class ResourceSpreader implements
-		IObservableResource<IStateChangedNotificationObserver<ResourceSpreader, NotificationState>, NotificationState> {
+		IObservableResource<IStateChangedNotificationObserver<ResourceSpreader, NotificationState>, NotificationState>,
+		SingleNotificationHandler<SpreaderBehaviour, Double> {
 
 	// These final variables define the base behavior of the class:
 	/**
@@ -92,6 +99,14 @@ public abstract class ResourceSpreader implements
 	 */
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/**
+	 * 
+	 */
+	@Override
+	public void sendNotification(SpreaderBehaviour onObject, Double payload) {
+		setPerTickProcessingPower(payload);	
+	}
+
 	/**
 	 * This is the given spreader's state watcher.
 	 */
@@ -245,7 +260,8 @@ public abstract class ResourceSpreader implements
 		 *            Why the notification was sent.
 		 */
 		@Override
-		public void notifyObserver(final ResourceSpreader notificationSource, final NotificationState notificationState) {
+		public void notifyObserver(final ResourceSpreader notificationSource,
+				final NotificationState notificationState) {
 
 			/**
 			 * If the notification was Nudge.
@@ -266,39 +282,38 @@ public abstract class ResourceSpreader implements
 			 * the syncer needs to recalculate the resources.
 			 */
 			if (notificationState == NotificationState.PROC_POWER_CHANGED) {
-				
+
 				/*
-				 * Elso otlet:
-				 * Nudge nem true => nem dolgozik kulso esemeny
-				 * ezert indithato nudge, ami 0 frekvenciaval beallitja a syncert
-				 * ami így a fire() alatt ismet sorra kerul es a rendszer elvegzi a tick alatt
-				 * az adott ujrautemezest es feldolgozast.
+				 * Elso otlet: Nudge nem true => nem dolgozik kulso esemeny
+				 * ezert indithato nudge, ami 0 frekvenciaval beallitja a
+				 * syncert ami így a fire() alatt ismet sorra kerul es a
+				 * rendszer elvegzi a tick alatt az adott ujrautemezest es
+				 * feldolgozast.
 				 */
-				
-				
+
 				/*
 				 * Masodik otlet
 				 */
 				/**
-				 * Mar folyamatban van egy kulso esemeny, ami modositast vegez a csoporton.
-				 * Gondolom ez tick / algorithm I. extension group resz
-				 * O majd meghivja az updatet
+				 * Mar folyamatban van egy kulso esemeny, ami modositast vegez a
+				 * csoporton. Gondolom ez tick / algorithm I. extension group
+				 * resz O majd meghivja az updatet
 				 */
-				if (nudged == true){
+				if (nudged == true) {
 					return;
 				}
-				
-				
-				// a megvaltozott teljesitmeny miatt el kell inditani egy utemezest
+
+				// a megvaltozott teljesitmeny miatt el kell inditani egy
+				// utemezest
 				final long newFreq = notificationSource.singleGroupwiseFreqUpdater();
 				// vagy ez, de ez hosszabb
-				//long SysTime = this.getFireCount();
-				//this.tick(SysTime);
-				regularFreqMode = newFreq != 0;			
+				// long SysTime = this.getFireCount();
+				// this.tick(SysTime);
+				regularFreqMode = newFreq != 0;
 				updateFrequency(newFreq);
 				nudged = false;
-		
-				if (isSubscribed() == false){
+
+				if (isSubscribed() == false) {
 					throw new IllegalStateException("ERROR: The group is no more subscribed!");
 				}
 			}
@@ -1166,27 +1181,26 @@ public abstract class ResourceSpreader implements
 		// }
 		if (stateObserver != null) {
 			/**
-			 * The processing power is changed.
-			 * Need to update the influence group with the changes.
+			 * The processing power is changed. Need to update the influence
+			 * group with the changes.
 			 */
-			if (stateObserver.getObserverInnerSyncer().isSubscribed() == true){
+			if (stateObserver.getObserverInnerSyncer().isSubscribed() == true) {
 				this.perTickProcessingPower = perTickProcessingPower;
 				this.negligableProcessing = this.perTickProcessingPower / 1000000000;
 				// resource changed need to call an algorithm
 				stateObserver.notifyObserver(this, NotificationState.PROC_POWER_CHANGED);
-				
+
 			} else {
 				/**
-				 * This influence group is not subscribed
-				 * so doesn't need to call any algorithm. 
-				 */				
+				 * This influence group is not subscribed so doesn't need to
+				 * call any algorithm.
+				 */
 				this.perTickProcessingPower = perTickProcessingPower;
 				this.negligableProcessing = this.perTickProcessingPower / 1000000000;
-			}				
+			}
 		} else {
 			/**
-			 * This spreader is not in any influence group.
-			 * Normal value set.
+			 * This spreader is not in any influence group. Normal value set.
 			 */
 			this.perTickProcessingPower = perTickProcessingPower;
 			this.negligableProcessing = this.perTickProcessingPower / 1000000000;

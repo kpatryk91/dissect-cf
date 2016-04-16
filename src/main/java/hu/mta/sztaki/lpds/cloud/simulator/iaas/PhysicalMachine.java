@@ -31,7 +31,6 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
@@ -41,8 +40,6 @@ import gnu.trove.list.linked.TDoubleLinkedList;
 import hu.mta.sztaki.lpds.cloud.simulator.DeferredEvent;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
-import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehaviourFactory;
-import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBehaviourFactory.BaseBehaviour;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.AlterableResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ResourceConstraints;
@@ -554,13 +551,13 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	/**
 	 * the complete resouce set of the pm
 	 */
-	private ConstantConstraints totalCapacities;
+	protected ConstantConstraints totalCapacities;
 
 	// TODO: Decorator, DVFS, Cores change
 	/**
 	 * Physical machine maximum capacity
 	 */
-	private final ConstantConstraints maximumCapacity;
+	protected final ConstantConstraints maximumCapacity;
 
 	/**
 	 * 
@@ -569,40 +566,23 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 *            if value = 0 => previous value will be used.
 	 * @param perCorePower
 	 */
-	public void setCapacity(double cores, double perCorePower) {
-
-		if (cores < 0 || perCorePower < 0) {
-			throw new IllegalStateException(
-					"ERROR: Invalid argument value: " + "cores: " + cores + " perCorePower: " + perCorePower);
-		}
-		double newCore = totalCapacities.getRequiredCPUs();
-		double newPerCore = totalCapacities.getRequiredProcessingPower();
-		if (cores != 0) {
-			newCore = cores;
-		}
-		
-		if (perCorePower != 0 ) {
-			newPerCore = perCorePower;
-		}
-		ConstantConstraints newState = new ConstantConstraints(newCore, newPerCore, totalCapacities.getRequiredMemory());
-		totalCapacities = newState;
-		setPerTickProcessingPower(newCore * newPerCore); 
-	}
+	/*
+	 * public void setCapacity(double cores, double perCorePower) {
+	 * 
+	 * if (cores < 0 || perCorePower < 0) { throw new IllegalStateException(
+	 * "ERROR: Invalid argument value: " + "cores: " + cores + " perCorePower: "
+	 * + perCorePower); } double newCore = totalCapacities.getRequiredCPUs();
+	 * double newPerCore = totalCapacities.getRequiredProcessingPower(); if
+	 * (cores != 0) { newCore = cores; }
+	 * 
+	 * if (perCorePower != 0) { newPerCore = perCorePower; } ConstantConstraints
+	 * newState = new ConstantConstraints(newCore, newPerCore,
+	 * totalCapacities.getRequiredMemory()); totalCapacities = newState;
+	 * setPerTickProcessingPower(newCore * newPerCore); }
+	 */
 
 	public ConstantConstraints getMaximumCapacity() {
 		return maximumCapacity;
-	}
-
-	private List<PhysicalMachineBehaviourFactory.BaseBehaviour> behaviourList = new LinkedList<BaseBehaviour>();
-
-	public void addBehaviour(final PhysicalMachineBehaviourFactory.BaseBehaviour beh) {
-		beh.addobservedPM(this);
-		behaviourList.add(beh);
-	}
-
-	public void removeBehaviour(final PhysicalMachineBehaviourFactory.BaseBehaviour beh) {
-		beh.removingBehaviour();
-		behaviourList.remove(beh);
 	}
 
 	/**

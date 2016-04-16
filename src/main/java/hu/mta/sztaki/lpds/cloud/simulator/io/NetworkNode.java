@@ -25,16 +25,19 @@
 
 package hu.mta.sztaki.lpds.cloud.simulator.io;
 
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+
 import hu.mta.sztaki.lpds.cloud.simulator.DeferredEvent;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.BehaviourFactory;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.SpreaderBehaviour;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.behaviourChange;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.MaxMinConsumer;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.MaxMinProvider;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceConsumption;
 import hu.mta.sztaki.lpds.cloud.simulator.notifications.SingleNotificationHandler;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 /**
  * This class represents a networked element in the system. The class also
@@ -102,31 +105,39 @@ public class NetworkNode {
 			}
 		}
 	}
-
-	// TODO: Decorator, DVFS, Cores change
-	private List<SingleNotificationHandler<NetworkNode, behaviourChange>> observers = new ArrayList<SingleNotificationHandler<NetworkNode, behaviourChange>>();
 	
-	/**
-	 * This methode changes the IO capacity of the current NetworkNode.<br>
-	 * IO capacity: Input and output network capacity.
-	 * @param newCapacity The capacity in bytes/tick. <br>
-	 * The value must be greater than zero.
-	 * @throws IllegalStateException if the parameter doesnt meet the criterias.
-	 * 
-	 */
-	public void changeNodeIOCapacity(final double newCapacity) {
-		if (newCapacity <= 0) {
-			throw new IllegalStateException("ERROR: Invalid network node IO capacity: " + newCapacity);
-		}
-		
-		for(SingleNotificationHandler<NetworkNode, behaviourChange> i : observers) {
-			i.sendNotification(this, new behaviourChange("Capacity changed", newCapacity));
+	// TODO: Decorator, DVFS, Cores change
+	private void setupBehaviour(boolean DVFS) {
+		if (DVFS == true) {
+			BehaviourFactory bf= new BehaviourFactory();
+			behaviours.addAll(bf.getNetworkNodeBehaviour(this, "NN_DVFS"));
 		}
 	}
 
 	/**
-	 * Models the incoming network connections of this network node
+	 * 
 	 */
+	private List<SpreaderBehaviour> behaviours = new LinkedList<SpreaderBehaviour>();
+	/*
+	 * Maximum input bandwidth.
+	 */
+	private final long MAX_INBW;
+	/**
+	 * Maximum output bandwith.
+	 */
+	private final long MAX_OUTBW;
+	
+	public long getMAX_INBW() {
+		return MAX_INBW;
+	}
+
+	public long getMAX_OUTBW() {
+		return MAX_OUTBW;
+	}
+	
+	/**
+	 * Models the incoming network connections of this network node
+	 */		
 	public final MaxMinConsumer inbws;
 	/**
 	 * Models the outgoing network connections of this network node
@@ -178,15 +189,14 @@ public class NetworkNode {
 	 *            the output bw of the node
 	 * @param diskBW
 	 *            the disk bw of the node
+	 * @param DVFS_Mode
+	 *            additional behaviours of the current node
 	 */
 	public NetworkNode(final String id, final long maxInBW, final long maxOutBW, final long diskBW,
-			final Map<String, Integer> latencymap) {
+			final Map<String, Integer> latencymap, boolean DVFS_Mode) {
 		name = id;
 		outbws = new MaxMinProvider(maxOutBW);
 		inbws = new MaxMinConsumer(maxInBW);
-		// TODO: Decorator, DVFS, Cores change
-		observers.add(inbws);
-		observers.add(outbws);
 		diskinbws = new MaxMinConsumer(diskBW / 2f);
 		diskoutbws = new MaxMinProvider(diskBW / 2f);
 		// Just making sure we will have enough bandwidht for every operation we
@@ -195,6 +205,41 @@ public class NetworkNode {
 		meminbws = new MaxMinConsumer(memBW);
 		memoutbws = new MaxMinProvider(memBW);
 		latencies = latencymap;
+
+		// TODO: Decorator, DVFS, Cores change
+		MAX_INBW = maxInBW;
+		MAX_OUTBW = maxOutBW;
+		setupBehaviour(DVFS_Mode);
+	}
+
+	/**
+	 * This function initializes the bandwidth spreaders for the node to ensure
+	 * equal network share for each transfer occurring on the node.
+	 * 
+	 * @param maxInBW
+	 *            the input bw of the node
+	 * @param maxOutBW
+	 *            the output bw of the node
+	 * @param diskBW
+	 *            the disk bw of the node
+	 */
+	public NetworkNode(final String id, final long maxInBW, final long maxOutBW, final long diskBW,
+			final Map<String, Integer> latencymap) {
+		name = id;
+		outbws = new MaxMinProvider(maxOutBW);
+		inbws = new MaxMinConsumer(maxInBW);
+		diskinbws = new MaxMinConsumer(diskBW / 2f);
+		diskoutbws = new MaxMinProvider(diskBW / 2f);
+		// Just making sure we will have enough bandwidht for every operation we
+		// could possibly have
+		final double memBW = (maxOutBW + maxInBW + diskBW);
+		meminbws = new MaxMinConsumer(memBW);
+		memoutbws = new MaxMinProvider(memBW);
+		latencies = latencymap;
+
+		// TODO: Decorator, DVFS, Cores change
+		MAX_INBW = maxInBW;
+		MAX_OUTBW = maxOutBW;
 	}
 
 	/**

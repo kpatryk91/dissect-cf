@@ -45,14 +45,8 @@ import hu.mta.sztaki.lpds.cloud.simulator.notifications.SingleNotificationHandle
  * @author "Gabor Kecskemeti, Distributed and Parallel Systems Group, University of Innsbruck (c) 2013"
  *
  */
-public class MaxMinConsumer extends MaxMinFairSpreader implements SingleNotificationHandler<NetworkNode, behaviourChange>{
+public class MaxMinConsumer extends MaxMinFairSpreader {
 
-	// TODO: Decorator, DVFS, Cores change
-	@Override
-	public void sendNotification(NetworkNode onObject, behaviourChange payload) {
-		// TODO Auto-generated method stub
-		setPerTickProcessingPower(payload.getCapacityChange());
-	}
 	/**
 	 * Constructs a generic Max Min fairness based resource consumer.
 	 * 
@@ -63,8 +57,6 @@ public class MaxMinConsumer extends MaxMinFairSpreader implements SingleNotifica
 	public MaxMinConsumer(final double initialProcessing) {
 		super(initialProcessing);
 	}
-
-	
 
 	/**
 	 * Translates the consumption limit update request to actually changing a
