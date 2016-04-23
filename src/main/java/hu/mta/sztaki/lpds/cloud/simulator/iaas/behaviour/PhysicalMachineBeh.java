@@ -22,13 +22,11 @@ public class PhysicalMachineBeh extends PhysicalMachine {
 			double[] turnonOperations, double[] switchoffOperations,
 			EnumMap<PowerStateKind, EnumMap<State, PowerState>> powerTransitions) {
 		super(cores, perCorePocessing, memory, disk, turnonOperations, switchoffOperations, powerTransitions);
-		// TODO Auto-generated constructor stub
 	}
 
 	public PhysicalMachineBeh(double cores, double perCorePocessing, long memory, Repository disk, int onD, int offD,
 			EnumMap<PowerStateKind, EnumMap<State, PowerState>> powerTransitions) {
 		super(cores, perCorePocessing, memory, disk, onD, offD, powerTransitions);
-		// TODO Auto-generated constructor stub
 	}
 
 }

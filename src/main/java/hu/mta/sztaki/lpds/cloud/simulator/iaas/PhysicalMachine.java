@@ -177,6 +177,12 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 *         "Gabor Kecskemeti, Laboratory of Parallel and Distributed Systems, MTA SZTAKI (c) 2012"
 	 */
 	public class ResourceAllocation extends DeferredEvent implements VirtualMachine.StateChange {
+		
+		// TODO: VM DVFS 
+		public UnalterableConstraintsPropagator getPMFreeCapacities() {
+			return freeCapacities;
+		}
+				
 		/**
 		 * The resource set that is virtually offered to the VM that uses this
 		 * allocation.
@@ -338,7 +344,7 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		 * called. As a result, the PM ensures that the relesed resources are
 		 * again available to all interested parties.
 		 */
-		void release() {
+		public void release() {
 			if (user != null) {
 				vms.remove(user);
 				user.unsubscribeStateChange(this);
@@ -558,28 +564,6 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 * Physical machine maximum capacity
 	 */
 	protected final ConstantConstraints maximumCapacity;
-
-	/**
-	 * 
-	 * @param cores
-	 *            if value < 0 => IllegalStateException<br>
-	 *            if value = 0 => previous value will be used.
-	 * @param perCorePower
-	 */
-	/*
-	 * public void setCapacity(double cores, double perCorePower) {
-	 * 
-	 * if (cores < 0 || perCorePower < 0) { throw new IllegalStateException(
-	 * "ERROR: Invalid argument value: " + "cores: " + cores + " perCorePower: "
-	 * + perCorePower); } double newCore = totalCapacities.getRequiredCPUs();
-	 * double newPerCore = totalCapacities.getRequiredProcessingPower(); if
-	 * (cores != 0) { newCore = cores; }
-	 * 
-	 * if (perCorePower != 0) { newPerCore = perCorePower; } ConstantConstraints
-	 * newState = new ConstantConstraints(newCore, newPerCore,
-	 * totalCapacities.getRequiredMemory()); totalCapacities = newState;
-	 * setPerTickProcessingPower(newCore * newPerCore); }
-	 */
 
 	public ConstantConstraints getMaximumCapacity() {
 		return maximumCapacity;

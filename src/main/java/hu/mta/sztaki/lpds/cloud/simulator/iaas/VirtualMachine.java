@@ -27,11 +27,14 @@ package hu.mta.sztaki.lpds.cloud.simulator.iaas;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.lang3.tuple.Triple;
 
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.VMManager.VMManagementException;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.SpreaderBehaviour;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.VirtualMachineDVFS;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ConsumptionEventAdapter;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.MaxMinConsumer;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceConsumption;
@@ -84,7 +87,19 @@ import hu.mta.sztaki.lpds.cloud.simulator.notifications.StateDependentEventHandl
  *         "Gabor Kecskemeti, Laboratory of Parallel and Distributed Systems, MTA SZTAKI (c) 2012"
  */
 public class VirtualMachine extends MaxMinConsumer {
-
+	/*
+	private List<SpreaderBehaviour> behaviours = new LinkedList<SpreaderBehaviour>();
+	
+	public void addBehaviour(VirtualMachineDVFS beh) {
+		behaviours.add(beh);
+		vmStateChangelistenerManager.subscribeToEvents(beh);
+	}
+	
+	public void removeBehaviour(VirtualMachineDVFS beh) {
+		behaviours.remove(beh);
+		vmStateChangelistenerManager.unsubscribeFromEvents(beh);
+	}
+	*/
 	/**
 	 * This class is defined to ensure one can differentiate errors that were
 	 * caused because the functions on the VM class are called in an improper

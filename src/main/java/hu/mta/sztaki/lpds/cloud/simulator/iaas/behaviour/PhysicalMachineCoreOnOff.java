@@ -16,30 +16,25 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	 */
 	private final long FREQUENCY = 10000;
 
+	private boolean isSubscribed = false;
+	
+	private double maxCores = ((PhysicalMachine) observed).getMaximumCapacity().getRequiredCPUs();
+
+	private double nextCores;
 	/**
 	 * The previous state when the previous event came.
 	 */
 	private State prevState = State.OFF;
 
-	public PhysicalMachineCoreOnOff(ResourceSpreader spr) {
-		super(spr);
+	public PhysicalMachineCoreOnOff(ResourceSpreader spr, double maximumCapacity) {
+		super(spr, maximumCapacity);
 		stateChanged((PhysicalMachine) spr, prevState, ((PhysicalMachine) spr).getState());
+		
 
 	}
 
 	@Override
-	public void tick(long fires) {
-
-		if (lastNotficationTime == fires) {
-			return;
-		}
-		/*
-		 * Getting the needed fields.
-		 */
-		PowerState powerState = observed.getCurrentPowerBehavior();
-		ResourceConstraints actualCap = ((PhysicalMachine) observed).getCapacities();
-		double oldCpu = actualCap.getRequiredCPUs();
-
+	protected void calculateValues() {
 		/*
 		 * CoreOnOff theory: First, we need to get the consumer's consumption
 		 * need. Then we divide with the perCorePower to calculate how many cpus
@@ -51,17 +46,24 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 			consumption += con.getRealLimit();
 		}
 
-		double newCpu = Math.ceil(consumption / actualCap.getRequiredProcessingPower());
+		/*
+		 * Getting the needed fields.
+		 */
+		ResourceConstraints actualCap = ((PhysicalMachine) observed).getCapacities();
+
+		// double oldCpu = actualCap.getRequiredCPUs();
+
+		nextCores = Math.ceil(consumption / actualCap.getRequiredProcessingPower());
 		/*
 		 * The cpu number cannot rise above the limit and the processing power
 		 * cannot fall under one cpu core.
 		 */
-		if (newCpu > ((PhysicalMachine) observed).getMaximumCapacity().getRequiredCPUs()) {
-			newCpu = ((PhysicalMachine) observed).getMaximumCapacity().getRequiredCPUs();
+		if (nextCores > maxCores) {
+			nextCores = maxCores;
 		}
 
-		if (newCpu < 1) {
-			newCpu = 1;
+		if (nextCores < 1) {
+			nextCores = 1;
 		}
 
 		/*
@@ -75,42 +77,40 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 		 * range.
 		 * 
 		 */
-		double oldPerCoreWattRange = powerState.getConsumptionRange() / actualCap.getRequiredCPUs();
-		double oldPerCoreWattMin = powerState.getMinConsumption() / actualCap.getRequiredCPUs();
-
-		/*
-		 * Updating the current fields.
-		 */
-		lastNotficationTime = fires;
-		lastTotalProcessing = observed.getTotalProcessed();
-
-		/*
-		 * Update with the new datas.
-		 */
-		powerState.setConsumptionRange(oldPerCoreWattRange * newCpu);
-		powerState.setMinConsumption(oldPerCoreWattMin * newCpu);
-		setCapacity(newCpu, actualCap.getRequiredCPUs());
+		PowerState powerState = observed.getCurrentPowerBehavior();
+		nextPowerRange = (powerState.getConsumptionRange() / actualCap.getRequiredCPUs()) * nextCores;
+		nextPowerMin = (powerState.getMinConsumption() / actualCap.getRequiredCPUs()) * nextCores;
 	}
 
-	private void setCapacity(double cores, double perCorePower) {
+	@Override
+	protected void getMachineCapacity() {
+		actualMachineCapacity = (ConstantConstraints) ((PhysicalMachine) observed).getCapacities();
+	}
 
-		if (cores < 0 || perCorePower < 0) {
-			throw new IllegalStateException(
-					"ERROR: Invalid argument value: " + "cores: " + cores + " perCorePower: " + perCorePower);
-		}
+	@Override
+	protected void setMachineCapacity() {
 		PhysicalMachineBeh pmb = (PhysicalMachineBeh) observed;
-		double newCore = pmb.getCapacities().getRequiredCPUs();
-		double newPerCore = pmb.getCapacities().getRequiredProcessingPower();
-		if (cores != 0) {
-			newCore = cores;
+		pmb.setCapacity(nextCapacity);
+	}
+
+	@Override
+	public void tick(long fires) {
+
+		if (lastNotficationTime == fires) {
+			return;
 		}
 
-		if (perCorePower != 0) {
-			newPerCore = perCorePower;
-		}
-		ConstantConstraints newState = new ConstantConstraints(newCore, newPerCore,
-				pmb.getCapacities().getRequiredMemory());
-		pmb.setCapacity(newState);
+		getMachineCapacity();
+		calculateValues();
+		calculateCapacity();
+		lastNotficationTime = fires;
+		lastTotalProcessing = observed.getTotalProcessed();
+		PowerState powerState = observed.getCurrentPowerBehavior();
+		powerState.setConsumptionRange(nextPowerRange);
+		powerState.setMinConsumption(nextPowerMin);
+		setMachineCapacity();
+
+		// setCapacity(newCpu, actualCap.getRequiredCPUs());
 	}
 
 	@Override
@@ -119,12 +119,15 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 			prevState = State.RUNNING;
 			lastNotficationTime = Timed.getFireCount();
 			lastTotalProcessing = observed.getTotalProcessed();
+			isSubscribed = true;
 			this.subscribe(FREQUENCY);
 		}
 
-		if (prevState == State.RUNNING && newState == State.OFF) {
-			prevState = State.RUNNING;
-			this.unsubscribe();
+		if (prevState == State.RUNNING && newState != State.RUNNING) {
+			prevState = State.OFF;
+			if (isSubscribed == true) {
+				this.unsubscribe();
+			}
 		}
 	}
 

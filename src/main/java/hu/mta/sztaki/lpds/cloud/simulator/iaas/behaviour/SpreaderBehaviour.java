@@ -10,17 +10,7 @@ import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
  * @author Patrik
  *
  */
-public abstract class SpreaderBehaviour extends Timed {
-
-	/*
-	 * This filed is used to give the next number to the actual object.
-	 */
-	private static long LineNumber = 0;
-
-	/*
-	 * This field is used to identify the individual behaviour objects.
-	 */
-	private final long number;
+public class SpreaderBehaviour extends Timed {
 
 	/*
 	 * The last notification time when the class got a tick.
@@ -37,41 +27,142 @@ public abstract class SpreaderBehaviour extends Timed {
 	 */
 	protected final ResourceSpreader observed;
 
+	/*
+	 * The time between two ticks.
+	 */
+	private final long FREQUENCY = 10000;
+
+	/*
+	 * The maximum capacity of the current spreader.
+	 */
+	protected double MAXIMUM_CAPACITY;
+
+	/*
+	 * The minimum capacity of the spreader.
+	 */
+	protected double ONE_PERCENT_CAPACITY;
+
+	/*
+	 * This value is the possible processingPower of the spreader.
+	 */
+	protected double nextProcessingPower;
+
+	/*
+	 * This value is the possible power range of the spreader.
+	 */
+	protected double nextPowerRange;
+
+	/*
+	 * This value is the possible power minimum of the spreader.
+	 */
+	protected double nextPowerMin;
+
 	/**
 	 * 
 	 * @param spr
 	 */
-	public SpreaderBehaviour(ResourceSpreader spr) {
+	public SpreaderBehaviour(ResourceSpreader spr, double maximumCapacity) {
 		observed = spr;
 		lastNotficationTime = Timed.getFireCount();
 		lastTotalProcessing = spr.getTotalProcessed();
-		number = LineNumber;
-		LineNumber++;
+		MAXIMUM_CAPACITY = maximumCapacity;
+		ONE_PERCENT_CAPACITY = MAXIMUM_CAPACITY / 100;
+		subscribe(FREQUENCY);
+	}
+
+	/**
+	 * 
+	 * @param spr
+	 */
+	public SpreaderBehaviour(ResourceSpreader spr, double maximumCapacity, boolean autoSubscribe) {
+		observed = spr;
+		lastNotficationTime = Timed.getFireCount();
+		lastTotalProcessing = spr.getTotalProcessed();
+		MAXIMUM_CAPACITY = maximumCapacity;
+		ONE_PERCENT_CAPACITY = MAXIMUM_CAPACITY / 100;
+		if (autoSubscribe) {
+			subscribe(FREQUENCY);
+		}
+
+	}
+
+	protected void setMaximumAndPercentCapacity(double newMaximumCapacity) {
+		MAXIMUM_CAPACITY = newMaximumCapacity;
+		ONE_PERCENT_CAPACITY = newMaximumCapacity / 100; 
+	}
+	
+	/**
+	 * This method calculate next possibly values of the spreader. This method
+	 * change the following fields:<br>
+	 * - nextProcessingPower<br>
+	 * - nextPowerRange<br>
+	 * - nextPowerMin<br>
+	 * 
+	 */
+	protected void calculateValues() {
+
+		/*
+		 * Calculating the the processing power for the spreader. The processing
+		 * power cannot rise above the limit and the processing power cannot
+		 * fall under 1 percent of the total processing power.
+		 */
+		nextProcessingPower = (observed.getTotalProcessed() - lastTotalProcessing) * 1.2;
+		if (nextProcessingPower > MAXIMUM_CAPACITY) {
+			nextProcessingPower = MAXIMUM_CAPACITY;
+		}
+
+		if (nextProcessingPower < ONE_PERCENT_CAPACITY) {
+			nextProcessingPower = ONE_PERCENT_CAPACITY;
+		}
+
+		/*
+		 * Calculating the new power range for the spreader. Theory: There is a
+		 * 4 cores CPU with 10 perCorePower => sum 40 total power. The minimum
+		 * energy can't change, only the range can change. The current machine
+		 * has a minimum 10W/core power + 5W/core range. If the processing power
+		 * fall to the half the total processing power, the new value will be
+		 * half the power range of the current system. In this example: 40W
+		 * minimum + 20W range. The cpu has changed: 10 perCore power => 5
+		 * perCorePower. From this there will be 40W minimum + 10W range.
+		 * 
+		 */
+		nextPowerRange = observed.getCurrentPowerBehavior().getConsumptionRange()
+				* (nextProcessingPower / observed.getPerTickProcessingPower());
+		nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
+		/*
+		 * Updating the current fields.
+		 */
+		// lastTotalProcessing = observed.getTotalProcessed();
+		// lastNotficationTime = Timed.getFireCount();
+
+		/*
+		 * Setting in the new values.
+		 */
+		// state.setConsumptionRange(newRange);
+		// observed.sendNotification(this, newProcPow);
 	}
 
 	@Override
-	public final int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + (int) (number ^ (number >>> 32));
-		return result;
-	}
+	public void tick(long fires) {
 
-	@Override
-	public final boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		SpreaderBehaviour other = (SpreaderBehaviour) obj;
-		if (number != other.number)
-			return false;
-		return true;
-	}
+		if (lastNotficationTime == fires) {
+			return;
+		}
+		/*
+		 * Calculate the new values.
+		 */
+		calculateValues();
+		/*
+		 * Updating the current fields.
+		 */
+		lastNotficationTime = fires;
+		lastTotalProcessing = observed.getTotalProcessed();
 
-	@Override
-	public abstract void tick(long fires);
+		/*
+		 * Setting in the new values.
+		 */
+		observed.getCurrentPowerBehavior().setConsumptionRange(nextPowerRange);
+		observed.sendNotification(this, nextProcessingPower);
+	}
 
 }
