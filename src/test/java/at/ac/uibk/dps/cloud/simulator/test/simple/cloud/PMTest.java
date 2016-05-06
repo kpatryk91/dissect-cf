@@ -561,19 +561,19 @@ public class PMTest extends IaaSRelatedFoundation {
 				false, PhysicalMachine.defaultAllocLen);
 		Assert.assertTrue(
 				"In non strict mode, the PM should allocate its maximum capacities",
-				maxed.allocated.compareTo(pm.getCapacities()) == 0);
+				maxed.getAllocatedResources().compareTo(pm.getCapacities()) == 0);
 		Assert.assertTrue(
 				"In non strict mode, the PM should allocate less than requested",
-				maxed.allocated.compareTo(overCPUConstraints) < 0);
+				maxed.getAllocatedResources().compareTo(overCPUConstraints) < 0);
 		maxed.cancel();
 		maxed = pm.allocateResources(overMemoryConstraints, false,
 				PhysicalMachine.defaultAllocLen);
 		Assert.assertTrue(
 				"In non strict mode, the PM should allocate its maximum capacities",
-				maxed.allocated.compareTo(pm.getCapacities()) == 0);
+				maxed.getAllocatedResources().compareTo(pm.getCapacities()) == 0);
 		Assert.assertTrue(
 				"In non strict mode, the PM should allocate less than requested",
-				maxed.allocated.compareTo(overMemoryConstraints) < 0);
+				maxed.getAllocatedResources().compareTo(overMemoryConstraints) < 0);
 		maxed.cancel();
 		Assert.assertEquals("Should not have anything to do", -1,
 				Timed.getNextFire());

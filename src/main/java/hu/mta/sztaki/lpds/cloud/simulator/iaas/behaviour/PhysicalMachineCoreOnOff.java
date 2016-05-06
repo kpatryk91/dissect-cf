@@ -17,10 +17,21 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	private final long FREQUENCY = 10000;
 
 	private boolean isSubscribed = false;
-	
-	private double maxCores = ((PhysicalMachine) observed).getMaximumCapacity().getRequiredCPUs();
+
+	private double maxCores;
 
 	private double nextCores;
+
+	/*
+	 * The difference between the new core number and the old core number.
+	 * This value is used to set the available capacities of the pm.
+	 */
+	private double coreDifference;
+
+	public double getCoreDifference() {
+		return coreDifference;
+	}
+
 	/**
 	 * The previous state when the previous event came.
 	 */
@@ -28,8 +39,8 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 
 	public PhysicalMachineCoreOnOff(ResourceSpreader spr, double maximumCapacity) {
 		super(spr, maximumCapacity);
+		maxCores = ((PhysicalMachine) observed).getMaximumCapacity().getRequiredCPUs();
 		stateChanged((PhysicalMachine) spr, prevState, ((PhysicalMachine) spr).getState());
-		
 
 	}
 
@@ -53,7 +64,7 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 
 		// double oldCpu = actualCap.getRequiredCPUs();
 
-		nextCores = Math.ceil(consumption / actualCap.getRequiredProcessingPower());
+		nextCores = Math.ceil(consumption / actualCap.getRequiredProcessingPower()) + 1;
 		/*
 		 * The cpu number cannot rise above the limit and the processing power
 		 * cannot fall under one cpu core.
@@ -66,6 +77,13 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 			nextCores = 1;
 		}
 
+		/*
+		 * Calculate the core difference of the two values.
+		 */
+		coreDifference = actualCap.getRequiredCPUs() - nextCores;
+		if (coreDifference > 0) {
+			coreDifference *= -1;
+		}
 		/*
 		 * Calculating the new power range for the spreader. Theory: There is a
 		 * 4 cores CPU with 10 perCorePower => sum 40 total power. The minimum
@@ -90,7 +108,7 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	@Override
 	protected void setMachineCapacity() {
 		PhysicalMachineBeh pmb = (PhysicalMachineBeh) observed;
-		pmb.setCapacity(nextCapacity);
+		pmb.setCapacity(nextCapacity, this);
 	}
 
 	@Override

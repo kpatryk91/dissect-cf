@@ -199,6 +199,11 @@ public class AlterableResourceConstraints extends ResourceConstraints {
 		updateTotal();
 	}
 
+	public void setProcessingPower(double newProcessingPower) {
+		requiredProcessingPower = newProcessingPower;
+		updateTotal();
+	}
+	
 	/**
 	 * the total processing field is updated with this function. This is to be
 	 * used for the internal operations of the class.

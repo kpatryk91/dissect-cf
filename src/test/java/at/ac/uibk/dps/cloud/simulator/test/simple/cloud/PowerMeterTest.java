@@ -96,7 +96,7 @@ public class PowerMeterTest extends IaaSRelatedFoundation {
 				totalIdle * aSecond, meter.getTotalConsumption(), 0.1);
 		Assert.assertFalse(meter.isSubscribed());
 		meter.startMeter(aSecond / 10, true);
-		ResourceConstraints rc = vm.getResourceAllocation().allocated;
+		ResourceConstraints rc = vm.getResourceAllocation().getAllocatedResources();
 		final long taskleninms = 10 * aSecond;
 		Assert.assertEquals(0, ConsumptionEventAssert.hits.size());
 		vm.newComputeTask(rc.getTotalProcessingPower() * taskleninms,

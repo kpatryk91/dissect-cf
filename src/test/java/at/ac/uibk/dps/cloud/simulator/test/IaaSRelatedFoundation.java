@@ -170,7 +170,7 @@ public class IaaSRelatedFoundation extends VMRelatedFoundation {
 									try {
 										vm.newComputeTask(
 												processing
-														* vm.getResourceAllocation().allocated
+														* vm.getResourceAllocation().getAllocatedResources()
 																.getTotalProcessingPower(),
 												ResourceConsumption.unlimitedProcessing,
 												new ConsumptionEventAssert() {

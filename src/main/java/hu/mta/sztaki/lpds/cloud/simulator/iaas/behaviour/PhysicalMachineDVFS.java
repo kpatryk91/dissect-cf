@@ -1,10 +1,13 @@
 package hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour;
 
+import java.util.Set;
+
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.State;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.StateChangeListener;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.VirtualMachine;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ResourceConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
@@ -30,6 +33,29 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 	}
 
 	@Override
+	protected void calculateValues() {
+		// TODO Auto-generated method stub
+		super.calculateValues();
+
+		// The cpu corepower cant be lower than the offered capacity to the vms ???
+		// 
+		boolean calculate = true;
+		if (calculate) {
+			Set<VirtualMachine> vms = ((PhysicalMachine) observed).publicVms;
+			double maxcap = 0;
+			for (VirtualMachine vm : vms) {
+				double vmcap = vm.getResourceAllocation().getRealAllocatedCorePower();
+				if (maxcap < vmcap) {
+					maxcap = vmcap;
+				}
+			}
+			if (maxcap > nextProcessingPower) {
+				nextProcessingPower = maxcap;
+			}
+		}
+	}
+
+	@Override
 	protected void getMachineCapacity() {
 		// TODO Auto-generated method stub
 		actualMachineCapacity = (ConstantConstraints) ((PhysicalMachine) observed).getCapacities();
@@ -39,7 +65,7 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 	protected void setMachineCapacity() {
 		// TODO Auto-generated method stub
 		PhysicalMachineBeh pmb = (PhysicalMachineBeh) observed;
-		pmb.setCapacity(nextCapacity);
+		pmb.setCapacity(nextCapacity, this);
 	}
 
 	@Override

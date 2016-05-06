@@ -17,16 +17,16 @@ public class VirtualMachineDVFS extends MachineBehaviour implements VirtualMachi
 	private boolean isSubscribed = false;
 
 	public VirtualMachineDVFS(ResourceSpreader spr) {
-		super(spr, 0);
+		super(spr, spr.getTotalProcessed());
 		ResourceAllocation ra = ((VirtualMachine) spr).getResourceAllocation();
 		setMaximumAndPercentCapacity(
-				ra.getPMFreeCapacities().getTotalProcessingPower() + ra.allocated.getTotalProcessingPower());
+				ra.getPMFreeCapacities().getTotalProcessingPower() + ra.getRealAllocatedCorePower() * ra.getRealAllocatedCpus());
 
 	}
 
 	@Override
 	protected void getMachineCapacity() {
-		actualMachineCapacity = (ConstantConstraints) ((VirtualMachine) observed).getResourceAllocation().allocated;
+		//actualMachineCapacity = (ConstantConstraints) ((VirtualMachine) observed).getResourceAllocation().allocated;
 		/*
 		 * ResourceAllocation ra = ((VirtualMachine)
 		 * observed).getResourceAllocation(); UnalterableConstraintsPropagator
@@ -60,19 +60,25 @@ public class VirtualMachineDVFS extends MachineBehaviour implements VirtualMachi
 				isSubscribed = false;
 				unsubscribe();
 			}
+			prevState = State.DESTROYED;
 			vm.unsubscribeStateChange(this);
+			return;
 		}
 
-		if (prevState == State.SHUTDOWN && newState == State.RUNNING) {
+		if (prevState != State.RUNNING && newState == State.RUNNING) {
 			lastNotficationTime = Timed.getFireCount();
 			lastTotalProcessing = observed.getTotalProcessed();
 			isSubscribed = true;
+			prevState = State.RUNNING;
 			subscribe(10);
+			return;
 		}
 
 		if (prevState == State.RUNNING && newState != State.RUNNING) {
 			isSubscribed = false;
 			unsubscribe();
+			prevState = newState;
+			return;
 		}
 
 	}

@@ -8,6 +8,13 @@ import hu.mta.sztaki.lpds.cloud.simulator.io.NetworkNode;
 
 public class BehaviourFactory {
 
+	/**
+	 * 
+	 * @param pmb this value cannot be null.
+	 * @param behaviour value: DVFS dynamic scaling behaviour<br>
+	 * value: CoreOnOff core 
+	 * @return
+	 */
 	public SpreaderBehaviour getPhysicalMachineBehaviour(PhysicalMachineBeh pmb, String behaviour) {
 
 		if(pmb == null) {
@@ -29,6 +36,12 @@ public class BehaviourFactory {
 		throw new IllegalStateException("ERROR: Wrong behaviour mode!");
 	}
 
+	/**
+	 * 
+	 * @param vm this value cannot be null.
+	 * @param behaviour value: DVFS dynamic scalng behaviour
+	 * @return 
+	 */
 	public SpreaderBehaviour getVirtualMachineBehaviour(VirtualMachine vm, String behaviour) {
 		if (vm == null) {
 			throw new IllegalStateException("ERROR: VirtualMachine cannot be null!");

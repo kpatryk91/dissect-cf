@@ -92,8 +92,8 @@ public class SpreaderBehaviour extends Timed {
 	}
 	
 	/**
-	 * This method calculate next possibly values of the spreader. This method
-	 * change the following fields:<br>
+	 * This method calculates the next possibly values of the spreader. This method
+	 * changes the following fields:<br>
 	 * - nextProcessingPower<br>
 	 * - nextPowerRange<br>
 	 * - nextPowerMin<br>

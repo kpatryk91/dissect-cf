@@ -205,7 +205,9 @@ public class VirtualMachine extends MaxMinConsumer {
 			super.changeEvents(onMe);
 			try {
 				onMe.newComputeTask(onMe.va.getStartupProcessing(),
-						onMe.ra.allocated.getRequiredProcessingPower(),
+						//getAllocatedResources()
+						//allocated
+						onMe.ra.getAllocatedResources().getRequiredProcessingPower(),
 						new ConsumptionEventAdapter() {
 							/**
 							 * Once the startup process is complete we set the
@@ -864,7 +866,7 @@ public class VirtualMachine extends MaxMinConsumer {
 		final String memid = "VM-Memory-State-of-" + hashCode();
 		final Repository pmdisk = ra.getHost().localDisk;
 		savedmemory = new StorageObject(memid,
-				ra.allocated.getRequiredMemory(), false);
+				ra.getAllocatedResources().getRequiredMemory(), false);
 		setState(State.SUSPEND_TR);
 		class SuspendComplete extends ConsumptionEventAdapter {
 			@Override
@@ -1056,7 +1058,7 @@ public class VirtualMachine extends MaxMinConsumer {
 		case SUSPENDED_MIG:
 			ra = newRA;
 			ra.use(this);
-			setPerTickProcessingPower(ra.allocated.getTotalProcessingPower());
+			setPerTickProcessingPower(ra.getAllocatedResources().getTotalProcessingPower());
 			break;
 		default:
 			throw new StateChangeException(

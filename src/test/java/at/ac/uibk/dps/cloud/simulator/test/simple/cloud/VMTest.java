@@ -329,7 +329,7 @@ public class VMTest extends IaaSRelatedFoundation {
 		PhysicalMachine.ResourceAllocation ra = vmToUse.getResourceAllocation();
 		vmToUse.newComputeTask(1, 1, cea);
 		long memless = pm.localDisk.getFreeStorageCapacity();
-		long memsize = ra.allocated.getRequiredMemory();
+		long memsize = ra.getAllocatedResources().getRequiredMemory();
 		vmToUse.suspend();
 		try {
 			vmToUse.destroy(false);
@@ -367,7 +367,7 @@ public class VMTest extends IaaSRelatedFoundation {
 	public void ensureSuspendUsesJustEnoughDisk() throws VMManagementException, NetworkException {
 		switchOnVMwithMaxCapacity(centralVM, true);
 		long memless = pm.localDisk.getFreeStorageCapacity();
-		long memsize = centralVM.getResourceAllocation().allocated.getRequiredMemory();
+		long memsize = centralVM.getResourceAllocation().getAllocatedResources().getRequiredMemory();
 		pm.localDisk.registerObject(new StorageObject("SpaceFiller", memless - memsize, false));
 		centralVM.suspend();
 	}
@@ -500,7 +500,7 @@ public class VMTest extends IaaSRelatedFoundation {
 	@Test(timeout = 100)
 	public void migrationAfterSuspend() throws VMManagementException, NetworkException {
 		switchOnVMwithMaxCapacity(centralVM, true);
-		ResourceConstraints original = centralVM.getResourceAllocation().allocated;
+		ResourceConstraints original = centralVM.getResourceAllocation().getAllocatedResources();
 		centralVM.suspend();
 		final PhysicalMachine pmtarget = createAndExecutePM();
 		centralVM.migrate(pmtarget.allocateResources(original, true, PhysicalMachine.migrationAllocLen));

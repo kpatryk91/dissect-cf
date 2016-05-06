@@ -177,23 +177,54 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 *         "Gabor Kecskemeti, Laboratory of Parallel and Distributed Systems, MTA SZTAKI (c) 2012"
 	 */
 	public class ResourceAllocation extends DeferredEvent implements VirtualMachine.StateChange {
-		
-		// TODO: VM DVFS 
+
+		// TODO: VM DVFS
 		public UnalterableConstraintsPropagator getPMFreeCapacities() {
 			return freeCapacities;
 		}
-				
+
+		/**
+		 * This method gives back the real allocated cpu cores of the current
+		 * allocation.
+		 * 
+		 * @return
+		 */
+		public double getRealAllocatedCpus() {
+			return realAllocated.getRequiredCPUs();
+		}
+
+		/**
+		 * This method gives back the real allocated cpuPower of the current
+		 * allocation.
+		 * 
+		 * @return
+		 */
+		public double getRealAllocatedCorePower() {
+			return realAllocated.getRequiredProcessingPower();
+		}
+
 		/**
 		 * The resource set that is virtually offered to the VM that uses this
 		 * allocation.
 		 */
-		public final ResourceConstraints allocated;
+		private ResourceConstraints allocated;
+		
+		public ResourceConstraints getAllocatedResources() {
+			return allocated;
+		}
+		
+		protected void setResourceAllocation(ResourceConstraints newRes) {
+			allocated = newRes;
+		}
+		
+		private ResourceConstraints innerAllocated;
 		/**
 		 * The resource set that is actually reserved on the PM. If
 		 * allocated>realAllocated, then the VM might get resources up to
 		 * allocated but only when the PM is not over-committed.
 		 */
-		private final ResourceConstraints realAllocated;
+		private ResourceConstraints realAllocated;
+		
 		/**
 		 * The VM that utilizes the allocation in question
 		 */
@@ -228,6 +259,7 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 				final int until) {
 			super(until);
 			allocated = alloc;
+			//allocated = new UnalterableConstraintsPropagator(innerAllocated);
 			realAllocated = realAlloc;
 			int prLen = promisedResources.length;
 			int i = 0;
@@ -555,13 +587,14 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	}
 
 	/**
-	 * the complete resouce set of the pm
+	 * Not anymore the complete resouce set of the pm
 	 */
 	protected ConstantConstraints totalCapacities;
 
 	// TODO: Decorator, DVFS, Cores change
 	/**
-	 * Physical machine maximum capacity
+	 * This is the new complete resource set of the pm. Physical machine maximum
+	 * capacity
 	 */
 	protected final ConstantConstraints maximumCapacity;
 
@@ -574,7 +607,7 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 * 
 	 * avaiableCapacities = freeCapacities + promisedCapacities
 	 */
-	private final AlterableResourceConstraints internalAvailableCaps;
+	protected final AlterableResourceConstraints internalAvailableCaps;
 	/**
 	 * This is the publicly disclosed set of those resources that are not having
 	 * a VM running on them. This field is <b>read only</b>!
@@ -588,12 +621,12 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	 * the amount of resources currently allocated but that have no VM assigned
 	 * to them
 	 */
-	private AlterableResourceConstraints promisedCapacities = AlterableResourceConstraints.getNoResources();
+	protected AlterableResourceConstraints promisedCapacities = AlterableResourceConstraints.getNoResources();
 	/**
 	 * the amount of resources that are not running a VM or not allocated by
 	 * some resource allocation
 	 */
-	private final AlterableResourceConstraints internalReallyFreeCaps;
+	protected final AlterableResourceConstraints internalReallyFreeCaps;
 	/**
 	 * This is the publicly disclosed set of those resources that are not even
 	 * having an allocation. This field is <b>read only</b>!

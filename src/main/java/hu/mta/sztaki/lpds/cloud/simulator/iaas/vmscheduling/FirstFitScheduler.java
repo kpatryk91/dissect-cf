@@ -125,7 +125,7 @@ public class FirstFitScheduler extends Scheduler {
 								allocation = pm.allocateResources(request.queuedRC, false,
 										PhysicalMachine.defaultAllocLen);
 								if (allocation != null) {
-									if (allocation.allocated.compareTo(request.queuedRC) >= 0) {
+									if (allocation.getAllocatedResources().compareTo(request.queuedRC) >= 0) {
 										// Successful allocation
 										if (pm.freeCapacities.getRequiredCPUs() == 0 && currIterator.hasNext()) {
 											currIterator.next();
@@ -143,7 +143,7 @@ public class FirstFitScheduler extends Scheduler {
 										if (raBiggestNotSuitable == null) {
 											raBiggestNotSuitable = allocation;
 										} else {
-											if (allocation.allocated.compareTo(raBiggestNotSuitable.allocated) > 0) {
+											if (allocation.getAllocatedResources().compareTo(raBiggestNotSuitable.getAllocatedResources()) > 0) {
 												raBiggestNotSuitable.cancel();
 												raBiggestNotSuitable = allocation;
 											} else {
@@ -178,7 +178,7 @@ public class FirstFitScheduler extends Scheduler {
 					arc.multiply(request.queuedVMs.length - vmNum + 1);
 					if (raBiggestNotSuitable != null) {
 						arc = new AlterableResourceConstraints(request.queuedRC);
-						arc.subtract(raBiggestNotSuitable.allocated);
+						arc.subtract(raBiggestNotSuitable.getAllocatedResources());
 					}
 					returner = new ConstantConstraints(arc);
 				}
