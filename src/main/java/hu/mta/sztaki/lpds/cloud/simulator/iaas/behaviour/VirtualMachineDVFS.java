@@ -17,25 +17,28 @@ public class VirtualMachineDVFS extends MachineBehaviour implements VirtualMachi
 	private boolean isSubscribed = false;
 
 	public VirtualMachineDVFS(ResourceSpreader spr) {
-		super(spr, spr.getTotalProcessed());
+		super(spr, 0);
 		ResourceAllocation ra = ((VirtualMachine) spr).getResourceAllocation();
-		setMaximumAndPercentCapacity(
-				ra.getPMFreeCapacities().getTotalProcessingPower() + ra.getRealAllocatedCorePower() * ra.getRealAllocatedCpus());
-
+		if (ra != null) {
+			// Maximum capacity = vm allocation => realallocated total +
+			// pm.freecapacity total
+			setMaximumAndPercentCapacity(ra.getPMFreeCapacities().getTotalProcessingPower()
+					+ ra.getRealAllocatedCorePower() * ra.getRealAllocatedCpus());
+			stateChanged((VirtualMachine) observed, prevState, ((VirtualMachine) observed).getState());
+		} else {
+			// ?
+		}
 	}
 
 	@Override
 	protected void getMachineCapacity() {
-		//actualMachineCapacity = (ConstantConstraints) ((VirtualMachine) observed).getResourceAllocation().allocated;
-		/*
-		 * ResourceAllocation ra = ((VirtualMachine)
-		 * observed).getResourceAllocation(); UnalterableConstraintsPropagator
-		 * pmfree = ra.getPMFreeCapacities(); actualMachineCapacity = new
-		 * ConstantConstraints(ra.allocated.getRequiredCPUs(),
-		 * ra.allocated.getRequiredProcessingPower() +
-		 * pmfree.getRequiredProcessingPower(),
-		 * ra.allocated.getRequiredMemory());
-		 */
+		ResourceAllocation ra = ((VirtualMachine) observed).getResourceAllocation();
+		if (ra != null) {
+			actualMachineCapacity = (ResourceConstraints) ra.getRealAllocated();
+			setMaximumAndPercentCapacity(ra.getPMFreeCapacities().getTotalProcessingPower()
+					+ ra.getRealAllocatedCorePower() * ra.getRealAllocatedCpus());
+		}
+
 	}
 
 	@Override
@@ -66,11 +69,13 @@ public class VirtualMachineDVFS extends MachineBehaviour implements VirtualMachi
 		}
 
 		if (prevState != State.RUNNING && newState == State.RUNNING) {
-			lastNotficationTime = Timed.getFireCount();
-			lastTotalProcessing = observed.getTotalProcessed();
-			isSubscribed = true;
-			prevState = State.RUNNING;
-			subscribe(10);
+			if (((VirtualMachine) observed).getResourceAllocation() != null) {
+				lastNotficationTime = Timed.getFireCount();
+				lastTotalProcessing = observed.getTotalProcessed();
+				isSubscribed = true;
+				prevState = State.RUNNING;
+				subscribe(10);
+			}
 			return;
 		}
 

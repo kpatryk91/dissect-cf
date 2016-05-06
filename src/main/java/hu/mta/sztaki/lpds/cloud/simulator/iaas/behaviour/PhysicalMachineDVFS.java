@@ -58,7 +58,7 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 	@Override
 	protected void getMachineCapacity() {
 		// TODO Auto-generated method stub
-		actualMachineCapacity = (ConstantConstraints) ((PhysicalMachine) observed).getCapacities();
+		actualMachineCapacity = ((PhysicalMachine) observed).getCapacities();
 	}
 
 	@Override

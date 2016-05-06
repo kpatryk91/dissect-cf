@@ -15,7 +15,7 @@ import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
  */
 public abstract class MachineBehaviour extends SpreaderBehaviour {
 
-	protected ConstantConstraints actualMachineCapacity = null;
+	protected ResourceConstraints actualMachineCapacity = null;
 
 	protected ConstantConstraints nextCapacity = null;
 

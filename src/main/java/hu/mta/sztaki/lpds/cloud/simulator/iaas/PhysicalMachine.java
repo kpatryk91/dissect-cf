@@ -207,24 +207,40 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		 * The resource set that is virtually offered to the VM that uses this
 		 * allocation.
 		 */
-		private ResourceConstraints allocated;
-		
+		protected ResourceConstraints allocated;
+		/*
+		 * !!! This value is private because: If I create a new
+		 * UnalterablePropagator 9 test fails + errors. I must not leave it
+		 * public. With this private/protected + public getter + protected
+		 * setter all tests are OK.
+		 */
+
+		/**
+		 * Get the virtually allocated resources of the allocation.
+		 * 
+		 * @return
+		 */
 		public ResourceConstraints getAllocatedResources() {
 			return allocated;
 		}
-		
+
 		protected void setResourceAllocation(ResourceConstraints newRes) {
 			allocated = newRes;
 		}
-		
-		private ResourceConstraints innerAllocated;
+
 		/**
 		 * The resource set that is actually reserved on the PM. If
 		 * allocated>realAllocated, then the VM might get resources up to
 		 * allocated but only when the PM is not over-committed.
 		 */
 		private ResourceConstraints realAllocated;
-		
+
+		private UnalterableConstraintsPropagator publicrealAllocated;
+
+		public UnalterableConstraintsPropagator getRealAllocated() {
+			return publicrealAllocated;
+		}
+
 		/**
 		 * The VM that utilizes the allocation in question
 		 */
@@ -259,8 +275,8 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 				final int until) {
 			super(until);
 			allocated = alloc;
-			//allocated = new UnalterableConstraintsPropagator(innerAllocated);
 			realAllocated = realAlloc;
+			publicrealAllocated = new UnalterableConstraintsPropagator(realAllocated);
 			int prLen = promisedResources.length;
 			int i = 0;
 			for (i = 0; i < prLen && promisedResources[i] != null; i++)

@@ -102,7 +102,7 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 
 	@Override
 	protected void getMachineCapacity() {
-		actualMachineCapacity = (ConstantConstraints) ((PhysicalMachine) observed).getCapacities();
+		actualMachineCapacity = ((PhysicalMachine) observed).getCapacities();
 	}
 
 	@Override
