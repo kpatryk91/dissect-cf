@@ -198,7 +198,12 @@ public class AlterableResourceConstraints extends ResourceConstraints {
 		requiredMemory -= what.getRequiredMemory();
 		updateTotal();
 	}
-
+	
+	/**
+	 * Set the processing power of the current constraint.
+	 * This method doenst calculate other things just sets the corepower.
+	 * @param newProcessingPower
+	 */
 	public void setProcessingPower(double newProcessingPower) {
 		requiredProcessingPower = newProcessingPower;
 		updateTotal();

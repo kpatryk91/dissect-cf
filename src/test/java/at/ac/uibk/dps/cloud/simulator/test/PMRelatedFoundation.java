@@ -47,17 +47,15 @@ public class PMRelatedFoundation extends ConsumptionEventFoundation {
 	public static final double maxpower = 300;
 	public static final double diskDivider = 10;
 	public static final double netDivider = 20;
-	public static final double totalIdle = idlepower + idlepower / diskDivider
-			+ idlepower / netDivider;
+	public static final double totalIdle = idlepower + idlepower / diskDivider + idlepower / netDivider;
 	public final static EnumMap<PhysicalMachine.PowerStateKind, EnumMap<PhysicalMachine.State, PowerState>> defaultTransitions;
 
 	static {
 		try {
-			defaultTransitions = PowerTransitionGenerator.generateTransitions(
-					minpower, idlepower, maxpower, diskDivider, netDivider);
+			defaultTransitions = PowerTransitionGenerator.generateTransitions(minpower, idlepower, maxpower,
+					diskDivider, netDivider);
 		} catch (Exception e) {
-			throw new IllegalStateException(
-					"Cannot initialize the default transitions");
+			throw new IllegalStateException("Cannot initialize the default transitions");
 		}
 	}
 
@@ -65,8 +63,7 @@ public class PMRelatedFoundation extends ConsumptionEventFoundation {
 	public static void initStaticParts() {
 		// Ensure that the most important classes are loaded before we do
 		// anything (so the timeouts would not occur)
-		new PhysicalMachine(1, 1, 1, new Repository(1, "", 1, 1, 1, null), 1,
-				1, defaultTransitions);
+		new PhysicalMachine(1, 1, 1, new Repository(1, "", 1, 1, 1, null), 1, 1, defaultTransitions);
 	}
 
 	@Before

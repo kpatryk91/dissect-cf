@@ -30,7 +30,7 @@ public class SpreaderBehaviour extends Timed {
 	/*
 	 * The time between two ticks.
 	 */
-	private final long FREQUENCY = 10000;
+	private final long FREQUENCY = 5;
 
 	/*
 	 * The maximum capacity of the current spreader.
@@ -66,7 +66,6 @@ public class SpreaderBehaviour extends Timed {
 		lastNotficationTime = Timed.getFireCount();
 		lastTotalProcessing = spr.getTotalProcessed();
 		MAXIMUM_CAPACITY = maximumCapacity;
-		ONE_PERCENT_CAPACITY = MAXIMUM_CAPACITY / 100;
 		subscribe(FREQUENCY);
 	}
 
@@ -79,7 +78,6 @@ public class SpreaderBehaviour extends Timed {
 		lastNotficationTime = Timed.getFireCount();
 		lastTotalProcessing = spr.getTotalProcessed();
 		MAXIMUM_CAPACITY = maximumCapacity;
-		ONE_PERCENT_CAPACITY = MAXIMUM_CAPACITY / 100;
 		if (autoSubscribe) {
 			subscribe(FREQUENCY);
 		}
@@ -88,12 +86,11 @@ public class SpreaderBehaviour extends Timed {
 
 	protected void setMaximumAndPercentCapacity(double newMaximumCapacity) {
 		MAXIMUM_CAPACITY = newMaximumCapacity;
-		ONE_PERCENT_CAPACITY = newMaximumCapacity / 100; 
 	}
-	
+
 	/**
-	 * This method calculates the next possibly values of the spreader. This method
-	 * changes the following fields:<br>
+	 * This method calculates the next possibly values of the spreader. This
+	 * method changes the following fields:<br>
 	 * - nextProcessingPower<br>
 	 * - nextPowerRange<br>
 	 * - nextPowerMin<br>
@@ -107,6 +104,7 @@ public class SpreaderBehaviour extends Timed {
 		 * fall under 1 percent of the total processing power.
 		 */
 		nextProcessingPower = (observed.getTotalProcessed() - lastTotalProcessing) * 1.2;
+		// nextProcessingPower *= Timed.getFireCount() - lastNotficationTime;
 		if (nextProcessingPower > MAXIMUM_CAPACITY) {
 			nextProcessingPower = MAXIMUM_CAPACITY;
 		}
@@ -114,21 +112,13 @@ public class SpreaderBehaviour extends Timed {
 		if (nextProcessingPower < ONE_PERCENT_CAPACITY) {
 			nextProcessingPower = ONE_PERCENT_CAPACITY;
 		}
-
-		/*
-		 * Calculating the new power range for the spreader. Theory: There is a
-		 * 4 cores CPU with 10 perCorePower => sum 40 total power. The minimum
-		 * energy can't change, only the range can change. The current machine
-		 * has a minimum 10W/core power + 5W/core range. If the processing power
-		 * fall to the half the total processing power, the new value will be
-		 * half the power range of the current system. In this example: 40W
-		 * minimum + 20W range. The cpu has changed: 10 perCore power => 5
-		 * perCorePower. From this there will be 40W minimum + 10W range.
-		 * 
-		 */
-		nextPowerRange = observed.getCurrentPowerBehavior().getConsumptionRange()
-				* (nextProcessingPower / observed.getPerTickProcessingPower());
-		nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
+		// because the network spreader
+		// proc power cannot be zero.
+		if (nextProcessingPower < 1 ) {
+			nextProcessingPower = 1;
+		}
+		
+		
 		/*
 		 * Updating the current fields.
 		 */
@@ -142,6 +132,26 @@ public class SpreaderBehaviour extends Timed {
 		// observed.sendNotification(this, newProcPow);
 	}
 
+	protected void calculatePowerBehaviour() {
+		/*
+		 * Calculating the new power range for the spreader. Theory: There is a
+		 * 4 cores CPU with 10 perCorePower => sum 40 total power. The minimum
+		 * energy can't change, only the range can change. The current machine
+		 * has a minimum 10W/core power + 5W/core range. If the processing power
+		 * fall to the half the total processing power, the new value will be
+		 * half the power range of the current system. In this example: 40W
+		 * minimum + 20W range. The cpu has changed: 10 perCore power => 5
+		 * perCorePower. From this there will be 40W minimum + 10W range.
+		 * 
+		 */
+		// NetworkNode doesn't have power beh???
+		if (observed.getCurrentPowerBehavior() != null) {
+			nextPowerRange = observed.getCurrentPowerBehavior().getConsumptionRange()
+					* (nextProcessingPower / observed.getPerTickProcessingPower());
+			nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
+		}
+	}
+	
 	@Override
 	public void tick(long fires) {
 
@@ -152,6 +162,7 @@ public class SpreaderBehaviour extends Timed {
 		 * Calculate the new values.
 		 */
 		calculateValues();
+		calculatePowerBehaviour();
 		/*
 		 * Updating the current fields.
 		 */
@@ -161,7 +172,9 @@ public class SpreaderBehaviour extends Timed {
 		/*
 		 * Setting in the new values.
 		 */
-		observed.getCurrentPowerBehavior().setConsumptionRange(nextPowerRange);
+		if ((observed.getCurrentPowerBehavior() != null)) {
+			observed.getCurrentPowerBehavior().setConsumptionRange(nextPowerRange);
+		}
 		observed.sendNotification(this, nextProcessingPower);
 	}
 

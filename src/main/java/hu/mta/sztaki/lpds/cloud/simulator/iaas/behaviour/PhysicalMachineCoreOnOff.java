@@ -1,11 +1,14 @@
 package hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour;
 
+import com.sun.javafx.css.CalculatedValue;
+
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.State;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ResourceConstraints;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.UnalterableConstraintsPropagator;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceConsumption;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.resourcemodel.ResourceSpreader;
 
@@ -14,7 +17,7 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	/**
 	 * The time between two ticks.
 	 */
-	private final long FREQUENCY = 10000;
+	private final long FREQUENCY = 5;
 
 	private boolean isSubscribed = false;
 
@@ -23,8 +26,8 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	private double nextCores;
 
 	/*
-	 * The difference between the new core number and the old core number.
-	 * This value is used to set the available capacities of the pm.
+	 * The difference between the new core number and the old core number. This
+	 * value is used to set the available capacities of the pm.
 	 */
 	private double coreDifference;
 
@@ -57,14 +60,9 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 			consumption += con.getRealLimit();
 		}
 
-		/*
-		 * Getting the needed fields.
-		 */
-		ResourceConstraints actualCap = ((PhysicalMachine) observed).getCapacities();
-
 		// double oldCpu = actualCap.getRequiredCPUs();
 
-		nextCores = Math.ceil(consumption / actualCap.getRequiredProcessingPower()) + 1;
+		nextCores = Math.ceil(consumption / actualMachineCapacity.getRequiredProcessingPower()) + 1;
 		/*
 		 * The cpu number cannot rise above the limit and the processing power
 		 * cannot fall under one cpu core.
@@ -80,10 +78,12 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 		/*
 		 * Calculate the core difference of the two values.
 		 */
-		coreDifference = actualCap.getRequiredCPUs() - nextCores;
-		if (coreDifference > 0) {
-			coreDifference *= -1;
-		}
+		coreDifference = nextCores - actualMachineCapacity.getRequiredCPUs();
+
+	}
+
+	@Override
+	protected void calculatePowerBehaviour() {
 		/*
 		 * Calculating the new power range for the spreader. Theory: There is a
 		 * 4 cores CPU with 10 perCorePower => sum 40 total power. The minimum
@@ -96,8 +96,10 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 		 * 
 		 */
 		PowerState powerState = observed.getCurrentPowerBehavior();
-		nextPowerRange = (powerState.getConsumptionRange() / actualCap.getRequiredCPUs()) * nextCores;
-		nextPowerMin = (powerState.getMinConsumption() / actualCap.getRequiredCPUs()) * nextCores;
+		if (powerState != null) {
+			nextPowerRange = (powerState.getConsumptionRange() / actualMachineCapacity.getRequiredCPUs()) * nextCores;
+			nextPowerMin = (powerState.getMinConsumption() / actualMachineCapacity.getRequiredCPUs()) * nextCores;
+		}
 	}
 
 	@Override
@@ -112,6 +114,12 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 	}
 
 	@Override
+	protected void calculateCapacity() {
+		nextCapacity = new ConstantConstraints(nextCores, actualMachineCapacity.getRequiredProcessingPower(),
+				actualMachineCapacity.getRequiredMemory());
+	}
+
+	@Override
 	public void tick(long fires) {
 
 		if (lastNotficationTime == fires) {
@@ -120,15 +128,17 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 
 		getMachineCapacity();
 		calculateValues();
+		calculatePowerBehaviour();
 		calculateCapacity();
 		lastNotficationTime = fires;
 		lastTotalProcessing = observed.getTotalProcessed();
 		PowerState powerState = observed.getCurrentPowerBehavior();
-		powerState.setConsumptionRange(nextPowerRange);
-		powerState.setMinConsumption(nextPowerMin);
+		if (observed.getCurrentPowerBehavior() != null) {
+			powerState.setConsumptionRange(nextPowerRange);
+			powerState.setMinConsumption(nextPowerMin);
+		}
 		setMachineCapacity();
 
-		// setCapacity(newCpu, actualCap.getRequiredCPUs());
 	}
 
 	@Override
@@ -144,6 +154,7 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 		if (prevState == State.RUNNING && newState != State.RUNNING) {
 			prevState = State.OFF;
 			if (isSubscribed == true) {
+				isSubscribed = false;
 				this.unsubscribe();
 			}
 		}

@@ -5,6 +5,7 @@ import java.util.Set;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
 import hu.mta.sztaki.lpds.cloud.simulator.energy.powermodelling.PowerState;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.ResourceAllocation;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.State;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.StateChangeListener;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.VirtualMachine;
@@ -17,7 +18,7 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 	/**
 	 * The time between two ticks.
 	 */
-	private final long FREQUENCY = 10000;
+	private final long FREQUENCY = 5;
 
 	private boolean isSubscribed = false;
 
@@ -37,21 +38,46 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		// TODO Auto-generated method stub
 		super.calculateValues();
 
-		// The cpu corepower cant be lower than the offered capacity to the vms ???
-		// 
+		/*
+		 * PM power minimum 1 per core.
+		 */
+		if (nextProcessingPower / actualMachineCapacity.getRequiredCPUs() < 1) {
+			nextProcessingPower = 1 * actualMachineCapacity.getRequiredCPUs();
+			if (observed.getCurrentPowerBehavior() != null) {
+				nextPowerRange = observed.getCurrentPowerBehavior().getConsumptionRange()
+						* (nextProcessingPower / observed.getPerTickProcessingPower());
+				//nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
+			}
+		}
+		// The cpu corepower cannot be lower than the offered capacity to the
+		// vms.
+		// ???
+		//
 		boolean calculate = true;
 		if (calculate) {
 			Set<VirtualMachine> vms = ((PhysicalMachine) observed).publicVms;
+			double perCoreNext = nextProcessingPower / actualMachineCapacity.getRequiredCPUs();
 			double maxcap = 0;
 			for (VirtualMachine vm : vms) {
-				double vmcap = vm.getResourceAllocation().getRealAllocatedCorePower();
-				if (maxcap < vmcap) {
-					maxcap = vmcap;
+				ResourceAllocation allocation = vm.getResourceAllocation();
+				if (allocation != null) {
+					double vmcap = allocation.getRealAllocatedCorePower();
+					if (maxcap < vmcap) {
+						maxcap = vmcap;
+					}
 				}
 			}
-			if (maxcap > nextProcessingPower) {
-				nextProcessingPower = maxcap;
+			if (maxcap > perCoreNext) {
+				perCoreNext = maxcap;
 			}
+			/*
+			 * Can be thw vm perCore power greater than the maximum power of the
+			 * pm?
+			 */
+			if (perCoreNext > ((PhysicalMachine) observed).getMaximumCapacity().getRequiredProcessingPower()) {
+				perCoreNext = ((PhysicalMachine) observed).getMaximumCapacity().getRequiredProcessingPower();
+			}
+			nextProcessingPower = perCoreNext * actualMachineCapacity.getRequiredCPUs();
 		}
 	}
 
@@ -68,6 +94,8 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		pmb.setCapacity(nextCapacity, this);
 	}
 
+	
+	
 	@Override
 	public void tick(long fires) {
 
@@ -76,10 +104,13 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		}
 		getMachineCapacity();
 		calculateValues();
+		calculatePowerBehaviour();
 		calculateCapacity();
 		lastNotficationTime = fires;
 		lastTotalProcessing = observed.getTotalProcessed();
-		observed.getCurrentPowerBehavior().setConsumptionRange(nextPowerRange);
+		if (observed.getCurrentPowerBehavior() != null) {
+			observed.getCurrentPowerBehavior().setConsumptionRange(nextPowerRange);
+		}
 		setMachineCapacity();
 
 		//////////////////////////////////////////////////////////////////
@@ -157,6 +188,7 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		if (prevState == State.RUNNING && newState != State.RUNNING) {
 			prevState = State.OFF;
 			if (isSubscribed == true) {
+				isSubscribed = false;
 				this.unsubscribe();
 			}
 		}
