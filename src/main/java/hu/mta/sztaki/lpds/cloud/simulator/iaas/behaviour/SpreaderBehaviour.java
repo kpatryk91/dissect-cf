@@ -65,6 +65,7 @@ public class SpreaderBehaviour extends Timed {
 		observed = spr;
 		lastNotficationTime = Timed.getFireCount();
 		lastTotalProcessing = spr.getTotalProcessed();
+		setBackPreference(true);
 		MAXIMUM_CAPACITY = maximumCapacity;
 		subscribe(FREQUENCY);
 	}
@@ -77,11 +78,11 @@ public class SpreaderBehaviour extends Timed {
 		observed = spr;
 		lastNotficationTime = Timed.getFireCount();
 		lastTotalProcessing = spr.getTotalProcessed();
+		setBackPreference(true);
 		MAXIMUM_CAPACITY = maximumCapacity;
 		if (autoSubscribe) {
 			subscribe(FREQUENCY);
 		}
-
 	}
 
 	protected void setMaximumAndPercentCapacity(double newMaximumCapacity) {
@@ -103,8 +104,18 @@ public class SpreaderBehaviour extends Timed {
 		 * power cannot rise above the limit and the processing power cannot
 		 * fall under 1 percent of the total processing power.
 		 */
-		nextProcessingPower = (observed.getTotalProcessed() - lastTotalProcessing) * 1.2;
-		// nextProcessingPower *= Timed.getFireCount() - lastNotficationTime;
+		boolean mode = false;
+		if (mode) {
+			nextProcessingPower = (observed.getTotalProcessed() - lastTotalProcessing) * 1.2;
+			/*
+			 * normalize: divided by the time difference of the two total
+			 * processing
+			 */
+			nextProcessingPower /= ((Timed.getFireCount() - lastNotficationTime) * 1.0);
+		} else {
+			nextProcessingPower = (observed.getTotalProcessed() - lastTotalProcessing) * 1.2;
+		}
+
 		if (nextProcessingPower > MAXIMUM_CAPACITY) {
 			nextProcessingPower = MAXIMUM_CAPACITY;
 		}
@@ -114,11 +125,10 @@ public class SpreaderBehaviour extends Timed {
 		}
 		// because the network spreader
 		// proc power cannot be zero.
-		if (nextProcessingPower < 1 ) {
+		if (nextProcessingPower < 1) {
 			nextProcessingPower = 1;
 		}
-		
-		
+
 		/*
 		 * Updating the current fields.
 		 */
@@ -151,13 +161,14 @@ public class SpreaderBehaviour extends Timed {
 			nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
 		}
 	}
-	
+
 	@Override
 	public void tick(long fires) {
 
 		if (lastNotficationTime == fires) {
 			return;
 		}
+
 		/*
 		 * Calculate the new values.
 		 */

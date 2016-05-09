@@ -39,22 +39,24 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		super.calculateValues();
 
 		/*
-		 * PM power minimum 1 per core.
+		 * Core power minimum 1.
 		 */
 		if (nextProcessingPower / actualMachineCapacity.getRequiredCPUs() < 1) {
 			nextProcessingPower = 1 * actualMachineCapacity.getRequiredCPUs();
 			if (observed.getCurrentPowerBehavior() != null) {
 				nextPowerRange = observed.getCurrentPowerBehavior().getConsumptionRange()
 						* (nextProcessingPower / observed.getPerTickProcessingPower());
-				//nextPowerMin = observed.getCurrentPowerBehavior().getMinConsumption();
+				// nextPowerMin =
+				// observed.getCurrentPowerBehavior().getMinConsumption();
 			}
 		}
+
 		// The cpu corepower cannot be lower than the offered capacity to the
 		// vms.
 		// ???
 		//
-		boolean calculate = true;
-		if (calculate) {
+		boolean calculateVM = true;
+		if (calculateVM) {
 			Set<VirtualMachine> vms = ((PhysicalMachine) observed).publicVms;
 			double perCoreNext = nextProcessingPower / actualMachineCapacity.getRequiredCPUs();
 			double maxcap = 0;
@@ -94,8 +96,6 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		pmb.setCapacity(nextCapacity, this);
 	}
 
-	
-	
 	@Override
 	public void tick(long fires) {
 
@@ -104,8 +104,8 @@ class PhysicalMachineDVFS extends MachineBehaviour implements StateChangeListene
 		}
 		getMachineCapacity();
 		calculateValues();
-		calculatePowerBehaviour();
 		calculateCapacity();
+		calculatePowerBehaviour();
 		lastNotficationTime = fires;
 		lastTotalProcessing = observed.getTotalProcessed();
 		if (observed.getCurrentPowerBehavior() != null) {

@@ -30,8 +30,8 @@ public class PhysicalMachineBeh extends PhysicalMachine {
 			if (coreDiff == 0) {
 				return;
 			}
-			ConstantConstraints cc = new ConstantConstraints(((PhysicalMachineCoreOnOff) source).getCoreDifference(), 0,
-					0);
+
+			ConstantConstraints cc = new ConstantConstraints(coreDiff, 0, 0);
 
 			totalCapacities = con;
 			internalAvailableCaps.add(cc);
@@ -55,6 +55,7 @@ public class PhysicalMachineBeh extends PhysicalMachine {
 		// internalAvailableCaps.getTotalProcessingPower();
 		// setPerTickProcessingPower(con.getTotalProcessingPower());
 	}
+
 	/**
 	 * Defines a new physical machine, ensures that there are no VMs running so
 	 * far
@@ -86,6 +87,7 @@ public class PhysicalMachineBeh extends PhysicalMachine {
 			EnumMap<PowerStateKind, EnumMap<State, PowerState>> powerTransitions) {
 		super(cores, perCorePocessing, memory, disk, turnonOperations, switchoffOperations, powerTransitions);
 	}
+
 	/**
 	 * Defines a new physical machine, ensures that there are no VMs running so
 	 * far

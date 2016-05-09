@@ -9,10 +9,16 @@ import org.junit.Test;
 import at.ac.uibk.dps.cloud.simulator.test.IaaSRelatedFoundation;
 import at.ac.uibk.dps.cloud.simulator.test.PMRelatedFoundation;
 import hu.mta.sztaki.lpds.cloud.simulator.Timed;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.PhysicalMachine.ResourceAllocation;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.VMManager.VMManagementException;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.VirtualMachine;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.BehaviourFactory;
 import hu.mta.sztaki.lpds.cloud.simulator.iaas.behaviour.PhysicalMachineBeh;
+import hu.mta.sztaki.lpds.cloud.simulator.iaas.constraints.ConstantConstraints;
 import hu.mta.sztaki.lpds.cloud.simulator.io.Repository;
+import hu.mta.sztaki.lpds.cloud.simulator.io.VirtualAppliance;
+import hu.mta.sztaki.lpds.cloud.simulator.io.NetworkNode.NetworkException;
 
 public class PhysicalMachinaBehaviourTest extends IaaSRelatedFoundation {
 
@@ -39,10 +45,6 @@ public class PhysicalMachinaBehaviourTest extends IaaSRelatedFoundation {
 		storage = new Repository(storageCapacity, "TheDisk", netBW, netBW, diskBW, new HashMap<String, Integer>());
 		pm = new PhysicalMachineBeh(coreNumber, perCoreProcPow, memory, storage, 1, 1,
 				PMRelatedFoundation.defaultTransitions);
-
-		// vm = new VirtualMachine(va);
-		// FreqSyncer syncer = new FreqSyncer(pm, vm);
-
 	}
 
 	private void initializeWithVM() {
@@ -115,20 +117,20 @@ public class PhysicalMachinaBehaviourTest extends IaaSRelatedFoundation {
 	public void OfflinePMDVFS() {
 		setDVFSBeh();
 		Timed.simulateUntil(10);
-		Assert.assertEquals("PM/DVFS total capacity", 40 ,pm.getPerTickProcessingPower(), 0);
-		Assert.assertEquals("PM/DVFS per core capacity", 10 ,pm.getCapacities().getRequiredProcessingPower(), 0);
-		
+		Assert.assertEquals("PM/DVFS total capacity", 40, pm.getPerTickProcessingPower(), 0);
+		Assert.assertEquals("PM/DVFS per core capacity", 10, pm.getCapacities().getRequiredProcessingPower(), 0);
+
 	}
-	
+
 	@Test
 	public void OfflinePMCoreOnOff() {
 		setCoreOnOffBeh();
 		Timed.simulateUntil(10);
-		Assert.assertEquals("PM/CoreOnOff total capacity", 40 ,pm.getPerTickProcessingPower(), 0);
-		Assert.assertEquals("PM/CoreOnOff core capacity", 4 ,pm.getCapacities().getRequiredCPUs(), 0);
-		
+		Assert.assertEquals("PM/CoreOnOff total capacity", 40, pm.getPerTickProcessingPower(), 0);
+		Assert.assertEquals("PM/CoreOnOff core capacity", 4, pm.getCapacities().getRequiredCPUs(), 0);
+
 	}
-	
+
 	@Test
 	public void CoreOnOffBaseTest() {
 		setCoreOnOffBeh();

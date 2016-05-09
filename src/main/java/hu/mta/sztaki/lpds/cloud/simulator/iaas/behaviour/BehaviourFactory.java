@@ -17,7 +17,7 @@ public class BehaviourFactory {
 	 */
 	public SpreaderBehaviour getPhysicalMachineBehaviour(PhysicalMachineBeh pmb, String behaviour) {
 
-		if(pmb == null) {
+		if(pmb == null || !(pmb instanceof PhysicalMachineBeh)) {
 			throw new IllegalStateException("ERROR: PM cannot be null!");
 		}
 		
@@ -45,7 +45,7 @@ public class BehaviourFactory {
 	 * @return 
 	 */
 	public SpreaderBehaviour getVirtualMachineBehaviour(VirtualMachine vm, String behaviour) {
-		if (vm == null) {
+		if (vm == null || !(vm instanceof VirtualMachine)) {
 			throw new IllegalStateException("ERROR: VirtualMachine cannot be null!");
 		}
 		if (behaviour.equalsIgnoreCase("DVFS")) {
@@ -58,7 +58,7 @@ public class BehaviourFactory {
 
 	public List<SpreaderBehaviour> getNetworkNodeBehaviour(NetworkNode nn, String behaviour) {
 		
-		if(nn == null) {
+		if(nn == null || !(nn instanceof NetworkNode)) {
 			throw new IllegalStateException("ERROR: NetworkNode cannot be null!");
 		}
 		

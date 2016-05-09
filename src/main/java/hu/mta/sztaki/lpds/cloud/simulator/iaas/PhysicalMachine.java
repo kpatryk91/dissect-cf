@@ -207,7 +207,7 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 		 * The resource set that is virtually offered to the VM that uses this
 		 * allocation.
 		 */
-		protected ResourceConstraints allocated;
+		private ResourceConstraints allocated;
 		/*
 		 * !!! This value is private because: If I create a new
 		 * UnalterablePropagator 9 test fails + errors. I must not leave it
@@ -224,7 +224,7 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 			return allocated;
 		}
 
-		protected void setResourceAllocation(ResourceConstraints newRes) {
+		void setResourceAllocation(ResourceConstraints newRes) {
 			allocated = newRes;
 		}
 
@@ -1078,6 +1078,31 @@ public class PhysicalMachine extends MaxMinProvider implements VMManager<Physica
 	@Override
 	public void reallocateResources(final VirtualMachine vm, final ResourceConstraints newresources) {
 
+		ResourceAllocation VMalloc = vm.getResourceAllocation();
+		double newCores = VMalloc.getRealAllocatedCpus() - newresources.getRequiredCPUs();
+		double newPerPower = newresources.getRequiredProcessingPower();
+		// long newMemory = newresources.getRequiredMemory();
+
+		if (newCores == 0) {
+			if (newPerPower != VMalloc.getRealAllocatedCorePower()) {
+				VMalloc.realAllocated = newresources;
+				vm.sendNotification(null, newresources.getTotalProcessingPower());
+			}
+		}
+
+		if (newCores > 0) {
+			VMalloc.realAllocated = newresources;
+			this.internalAvailableCaps.add(new ConstantConstraints(newCores, 0, 0));
+			this.internalReallyFreeCaps.add(new ConstantConstraints(newCores, 0, 0));
+			vm.sendNotification(null, newresources.getTotalProcessingPower());
+		}
+
+		if (newCores < 0) {
+			VMalloc.realAllocated = newresources;
+			this.internalAvailableCaps.add(new ConstantConstraints(newCores, 0, 0));
+			this.internalReallyFreeCaps.add(new ConstantConstraints(newCores, 0, 0));
+			vm.sendNotification(null, newresources.getTotalProcessingPower());
+		}
 	}
 
 	/**

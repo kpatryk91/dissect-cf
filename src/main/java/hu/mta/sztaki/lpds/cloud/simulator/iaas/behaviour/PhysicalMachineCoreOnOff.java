@@ -128,8 +128,8 @@ class PhysicalMachineCoreOnOff extends MachineBehaviour implements PhysicalMachi
 
 		getMachineCapacity();
 		calculateValues();
-		calculatePowerBehaviour();
 		calculateCapacity();
+		calculatePowerBehaviour();
 		lastNotficationTime = fires;
 		lastTotalProcessing = observed.getTotalProcessed();
 		PowerState powerState = observed.getCurrentPowerBehavior();

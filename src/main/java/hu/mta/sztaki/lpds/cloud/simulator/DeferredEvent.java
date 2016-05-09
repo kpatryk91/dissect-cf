@@ -124,8 +124,12 @@ public abstract class DeferredEvent {
 	/**
 	 * The time instance at which this event should be delivered
 	 */
-	private final long eventArrival;
+	private long eventArrival;
 
+	protected void setNewLifeTime(long newEvent) {
+		eventArrival = Timed.calcTimeJump(newEvent);
+	}
+	
 	/**
 	 * Allows constructing objects that will receive an eventAction() call from
 	 * Timed after delay ticks.
